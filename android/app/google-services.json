@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "1049016726707",
+    "firebase_url": "https://danum-3bbe4-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "danum-3bbe4",
+    "storage_bucket": "danum-3bbe4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1049016726707:android:59f968e7dc368219ddecc6",
+        "android_client_info": {
+          "package_name": "com.example.danum"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCy4r4PjVx9bNTa7Vfk7u7NQ7BouyOqeJY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
