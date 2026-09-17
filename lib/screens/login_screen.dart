@@ -230,94 +230,90 @@ class _LoginScreenState extends State<LoginScreen> {
               constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height - AppBar().preferredSize.height - MediaQuery.of(context).padding.top),
               padding: const EdgeInsets.symmetric(horizontal: 30),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 90,
+                  height: 90,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF0284C7).withValues(alpha: 0.3),
+                        blurRadius: 20,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(45),
+                    child: Image.asset(
+                      'web/icons/Icon-Danum.jpeg',
                       width: 90,
                       height: 90,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF0284C7).withValues(alpha: 0.3),
-                            blurRadius: 20,
-                            spreadRadius: 4,
-                          ),
-                        ],
-                      ),
-                      child: ClipOval(
-                        child: Image.asset(
-                          'web/icons/Icon-Danum.jpeg',
-                          width: 90,
-                          height: 90,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: const Color(0xFF3B82F6),
-                              child: const Icon(Icons.water_drop_rounded, size: 50, color: Colors.white),
-                            );
-                          },
-                        ),
-                      ),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.water_drop_rounded, size: 80, color: Color(0xFF3B82F6)),
                     ),
                   ),
-                  const SizedBox(height: 25),
-                  Text(
-                    'Welcome Back',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: textColor, letterSpacing: -0.5),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Sign in to your Danum Monitor account',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: subColor, fontSize: 14),
-                  ),
-                  const SizedBox(height: 50),
-                  _buildInputField(
-                    label: 'Email',
-                    hint: 'Enter your email address',
-                    icon: Icons.email_rounded,
-                    controller: _emailController,
-                    isDark: isDark,
-                    textColor: textColor,
-                    subColor: subColor,
-                  ),
-                  const SizedBox(height: 20),
-                  _buildInputField(
-                    label: 'Password',
-                    hint: 'Enter your password',
-                    icon: Icons.lock_rounded,
-                    controller: _passwordController,
-                    isPassword: true,
-                    obscureText: _obscurePassword,
-                    onToggle: () => setState(() => _obscurePassword = !_obscurePassword),
-                    isDark: isDark,
-                    textColor: textColor,
-                    subColor: subColor,
-                  ),
-                  const SizedBox(height: 30),
-                  _buildLoginButton(),
-                  const SizedBox(height: 40),
-                  Text(
-                    'Danum System - Internal Use Only',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: subColor.withValues(alpha: 0.6), fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                ],
+                ),
               ),
-            ),
+              const SizedBox(height: 24),
+              Text(
+                'Welcome Back',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: textColor, letterSpacing: -0.5),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Sign in to your Danum Monitor account',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: subColor, fontSize: 14),
+              ),
+              const SizedBox(height: 60),
+              _buildInputField(
+                label: 'Email',
+                hint: 'Enter your email address',
+                icon: Icons.email_rounded,
+                controller: _emailController,
+                isDark: isDark,
+                textColor: textColor,
+                subColor: subColor,
+              ),
+              const SizedBox(height: 20),
+              _buildInputField(
+                label: 'Password',
+                hint: 'Enter your password',
+                icon: Icons.lock_rounded,
+                controller: _passwordController,
+                isPassword: true,
+                obscureText: _obscurePassword,
+                onToggle: () => setState(() => _obscurePassword = !_obscurePassword),
+                isDark: isDark,
+                textColor: textColor,
+                subColor: subColor,
+              ),
+              const SizedBox(height: 30),
+              _buildLoginButton(),
+              const SizedBox(height: 40),
+              Text(
+                'Danum System - Internal Use Only',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: subColor.withValues(alpha: 0.6), fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ],
           ),
-          if (_isLoading)
-            const DanumLoadingScreen(
-              message: 'Authenticating Danum Account...',
-              fullScreen: true,
-            ),
-        ],
+        ),
       ),
-    );
+      if (_isLoading)
+        const DanumLoadingScreen(
+          statusText: 'Authenticating User...',
+          isOverlay: true,
+        ),
+    ],
+  ),
+);
   }
 
   Widget _buildInputField({

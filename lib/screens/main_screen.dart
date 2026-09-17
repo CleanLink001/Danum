@@ -17,7 +17,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   bool _isNavigating = false;
-  String _navMessage = 'Loading Section...';
+  String _navLoadingText = 'Loading System...';
 
   final List<Widget> _pages = [
     const DashboardScreen(),
@@ -26,19 +26,25 @@ class _MainScreenState extends State<MainScreen> {
     const ProfileScreen(),
   ];
 
-  void _onTabTapped(int index) {
+  final List<String> _loadingLabels = [
+    'Loading Dashboard...',
+    'Synchronizing Sensor Telemetry...',
+    'Loading Water Quality Reports...',
+    'Fetching Account Profile...',
+  ];
+
+  void _onTabSelected(int index) {
     if (_currentIndex == index) return;
 
-    final tabNames = ['Dashboard', 'Real-Time Monitor', 'Reports & Audit Logs', 'User Profile'];
     setState(() {
       _isNavigating = true;
-      _navMessage = 'Loading ${tabNames[index]}...';
-      _currentIndex = index;
+      _navLoadingText = _loadingLabels[index];
     });
 
-    Future.delayed(const Duration(milliseconds: 250), () {
+    Future.delayed(const Duration(milliseconds: 350), () {
       if (mounted) {
         setState(() {
+          _currentIndex = index;
           _isNavigating = false;
         });
       }
@@ -59,11 +65,11 @@ class _MainScreenState extends State<MainScreen> {
           ),
           if (_isNavigating)
             AnimatedOpacity(
-              opacity: _isNavigating ? 1.0 : 0.0,
               duration: const Duration(milliseconds: 150),
+              opacity: _isNavigating ? 1.0 : 0.0,
               child: DanumLoadingScreen(
-                message: _navMessage,
-                fullScreen: true,
+                statusText: _navLoadingText,
+                isOverlay: true,
               ),
             ),
         ],
@@ -113,7 +119,7 @@ class _MainScreenState extends State<MainScreen> {
 
     return Expanded(
       child: GestureDetector(
-        onTap: () => _onTabTapped(index),
+        onTap: () => _onTabSelected(index),
         behavior: HitTestBehavior.opaque,
         child: Container(
           color: Colors.transparent,

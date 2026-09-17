@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
 
 class DanumLoadingScreen extends StatefulWidget {
-  final String message;
-  final bool fullScreen;
+  final String statusText;
+  final bool isOverlay;
 
   const DanumLoadingScreen({
     super.key,
-    this.message = 'Loading Danum System...',
-    this.fullScreen = true,
+    this.statusText = 'Loading Danum System...',
+    this.isOverlay = false,
   });
 
   @override
   State<DanumLoadingScreen> createState() => _DanumLoadingScreenState();
 }
 
-class _DanumLoadingScreenState extends State<DanumLoadingScreen>
-    with SingleTickerProviderStateMixin {
+class _DanumLoadingScreenState extends State<DanumLoadingScreen> with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _opacityAnimation;
@@ -46,15 +45,15 @@ class _DanumLoadingScreenState extends State<DanumLoadingScreen>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = widget.fullScreen
-        ? (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC))
-        : Colors.transparent;
+    final bgColor = widget.isOverlay 
+        ? (isDark ? const Color(0xFF0F172A).withValues(alpha: 0.88) : Colors.white.withValues(alpha: 0.88))
+        : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC));
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final subColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final subColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569);
 
-    return Container(
-      color: bgColor,
-      child: Center(
+    return Scaffold(
+      backgroundColor: bgColor,
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -73,12 +72,13 @@ class _DanumLoadingScreenState extends State<DanumLoadingScreen>
                         boxShadow: [
                           BoxShadow(
                             color: const Color(0xFF0284C7).withValues(alpha: 0.35),
-                            blurRadius: 30,
-                            spreadRadius: 8,
+                            blurRadius: 25,
+                            spreadRadius: 4,
                           ),
                         ],
                       ),
-                      child: ClipOval(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(55),
                         child: Image.asset(
                           'web/icons/Icon-Danum.jpeg',
                           width: 110,
@@ -87,11 +87,7 @@ class _DanumLoadingScreenState extends State<DanumLoadingScreen>
                           errorBuilder: (context, error, stackTrace) {
                             return Container(
                               color: const Color(0xFF0284C7),
-                              child: const Icon(
-                                Icons.water_drop_rounded,
-                                size: 55,
-                                color: Colors.white,
-                              ),
+                              child: const Icon(Icons.water_drop_rounded, size: 50, color: Colors.white),
                             );
                           },
                         ),
@@ -101,33 +97,35 @@ class _DanumLoadingScreenState extends State<DanumLoadingScreen>
                 );
               },
             ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: 32,
-              height: 32,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0284C7)),
-                backgroundColor: isDark ? Colors.white10 : Colors.black12,
-              ),
-            ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 28),
             Text(
-              widget.message,
+              'DANUM MONITOR',
               style: TextStyle(
                 color: textColor,
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.3,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2.0,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
-              'Real-Time Water Safety Monitoring',
+              widget.statusText,
               style: TextStyle(
-                color: subColor.withValues(alpha: 0.8),
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
+                color: subColor,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: 160,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: const LinearProgressIndicator(
+                  minHeight: 4,
+                  backgroundColor: Color(0x220284C7),
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0284C7)),
+                ),
               ),
             ),
           ],
