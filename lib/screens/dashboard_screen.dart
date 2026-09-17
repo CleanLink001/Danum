@@ -21,7 +21,36 @@ class DashboardScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('DANUM ${settings.translate('monitor')}'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              margin: const EdgeInsets.only(right: 10),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0284C7).withValues(alpha: 0.25),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.asset(
+                  'web/icons/Icon-Danum.jpeg',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.water_drop_rounded, size: 24, color: Color(0xFF0284C7)),
+                ),
+              ),
+            ),
+            Text('DANUM ${settings.translate('monitor')}'),
+          ],
+        ),
         actions: [
           StreamBuilder<WaterQualityData>(
             stream: simulationService.dataStream,

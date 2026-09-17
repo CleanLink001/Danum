@@ -41,7 +41,7 @@ class _MainScreenState extends State<MainScreen> {
       _navLoadingText = _loadingLabels[index];
     });
 
-    Future.delayed(const Duration(milliseconds: 350), () {
+    Future.delayed(const Duration(milliseconds: 700), () {
       if (mounted) {
         setState(() {
           _currentIndex = index;
