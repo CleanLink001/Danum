@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/auth_service.dart';
 import '../services/settings_service.dart';
 import '../services/simulation_service.dart';
 import '../services/notification_service.dart';
+import '../services/audit_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -48,6 +49,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthService>(context);
     final settings = Provider.of<SettingsService>(context);
+    final audit = Provider.of<AuditService>(context, listen: false);
     final user = auth.currentUser;
     
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -61,9 +63,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           IconButton(
             onPressed: () async {
               if (_isEditingProfile) {
-                await auth.updateProfile(_nameController.text, null);
+                final newName = _nameController.text.trim();
+                await auth.updateProfile(newName, null);
+                audit.logEvent(
+                  authService: auth,
+                  category: 'USER_PROFILE',
+                  action: 'Profile Name Updated',
+                  details: 'User display name changed to "$newName"',
+                );
               }
-              setState(() => _isEditingProfile = !_isEditingProfile);
+              if (mounted) {
+                setState(() => _isEditingProfile = !_isEditingProfile);
+              }
             },
             icon: Icon(_isEditingProfile ? Icons.check_rounded : Icons.edit_rounded, color: const Color(0xFF818CF8)),
           ),
@@ -258,6 +269,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _oldPasswordController.clear();
                         _newPasswordController.clear();
                         _confirmPasswordController.clear();
+                        final audit = Provider.of<AuditService>(context, listen: false);
+                        audit.logEvent(
+                          authService: auth,
+                          category: 'SECURITY',
+                          action: 'Account Credentials Updated',
+                          details: 'Password / security credentials successfully updated for ${_emailController.text.trim()}',
+                        );
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Account updated successfully'), backgroundColor: Colors.green));
                       } else {
                         _showError(error);
@@ -406,17 +424,77 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildSystemPrefs(SettingsService settings, Color textColor, Color subColor) {
-    return _buildSliderTile(
-      Icons.sync,
-      settings.translate('sync_interval'),
-      '${settings.syncInterval}s',
-      settings.syncInterval.toDouble(),
-      10, 60,
-      (val) {
-        settings.setSyncInterval(val.toInt());
-        Provider.of<SimulationService>(context, listen: false).updateSyncInterval(val.toInt());
-      },
-      textColor, subColor,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSliderTile(
+          Icons.sync,
+          settings.translate('sync_interval'),
+          '${settings.syncInterval}s',
+          settings.syncInterval.toDouble(),
+          10,
+          60,
+          (val) {
+            settings.setSyncInterval(val.toInt());
+            Provider.of<SimulationService>(context, listen: false).updateSyncInterval(val.toInt());
+          },
+          textColor,
+          subColor,
+          onChangeEnd: (val) {
+            final audit = Provider.of<AuditService>(context, listen: false);
+            final auth = Provider.of<AuthService>(context, listen: false);
+            audit.logEvent(
+              authService: auth,
+              category: 'SETTINGS',
+              action: 'Cloud Sync Interval Updated',
+              details: 'Cloud database telemetry sync interval configured to ${val.toInt()} seconds',
+            );
+          },
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0284C7).withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFF0284C7).withValues(alpha: 0.2),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded, color: Color(0xFF0284C7), size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Cloud Sync Rate & Database Lifetime',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '• How It Works:\n'
+                'Controls how frequently the system uploads real-time water quality sensor metrics (pH, TDS, turbidity, battery) to the cloud database.\n\n'
+                '• Impact on Database Lifetime & Quotas:\n'
+                '• Faster Sync (10s): Provides near-instant telemetry updates and faster emergency alerting, but generates high write traffic, consumes more bandwidth and power, and reaches cloud database storage quotas sooner.\n'
+                '• Slower Sync (30s–60s): Minimizes write frequency, significantly reduces database size accumulation, prevents quota exhaustion, and dramatically extends database lifetime while preserving reliable monitoring.',
+                style: TextStyle(
+                  fontSize: 12,
+                  height: 1.45,
+                  color: subColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -460,7 +538,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSliderTile(IconData icon, String title, String label, double value, double min, double max, Function(double) onChanged, Color textColor, Color subColor) {
+  Widget _buildSliderTile(
+    IconData icon,
+    String title,
+    String label,
+    double value,
+    double min,
+    double max,
+    Function(double) onChanged,
+    Color textColor,
+    Color subColor, {
+    ValueChanged<double>? onChangeEnd,
+  }) {
     return Column(
       children: [
         ListTile(
@@ -468,7 +557,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: Text(title, style: TextStyle(color: textColor, fontSize: 15, fontWeight: FontWeight.w600)),
           trailing: Text(label, style: const TextStyle(color: Color(0xFF22D3EE), fontWeight: FontWeight.bold)),
         ),
-        Slider(value: value, min: min, max: max, divisions: 5, activeColor: const Color(0xFF818CF8), onChanged: onChanged),
+        Slider(
+          value: value,
+          min: min,
+          max: max,
+          divisions: 5,
+          activeColor: const Color(0xFF818CF8),
+          onChanged: onChanged,
+          onChangeEnd: onChangeEnd,
+        ),
       ],
     );
   }
@@ -561,97 +658,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _showDownloadDialog(context),
-              icon: const Icon(Icons.download_rounded, size: 18),
-              label: const Text('Download APK & GitHub Info'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF0284C7),
-                side: const BorderSide(color: Color(0xFF0284C7)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                padding: const EdgeInsets.symmetric(vertical: 12),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _openUrl('https://github.com/CleanLink001/Danum'),
+                  icon: const Icon(Icons.open_in_browser_rounded, size: 18),
+                  label: const Text('GitHub Repo'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0284C7),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _openUrl('https://github.com/CleanLink001/Danum/raw/main/app-release.apk'),
+                  icon: const Icon(Icons.download_rounded, size: 18),
+                  label: const Text('Download APK'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF0284C7),
+                    side: const BorderSide(color: Color(0xFF0284C7)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  void _showDownloadDialog(BuildContext context) {
-    const repoUrl = 'https://github.com/CleanLink001/Danum.git';
-    const apkUrl = 'https://github.com/CleanLink001/Danum/raw/main/app-release.apk';
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              margin: const EdgeInsets.only(right: 10),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.asset('web/icons/Icon-Danum.jpeg', fit: BoxFit.cover),
-              ),
-            ),
-            const Text('Download & Repo', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'The release APK is available directly on GitHub:',
-              style: TextStyle(fontSize: 13),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.black12,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: SelectableText(
-                apkUrl,
-                style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Repository:',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            SelectableText(
-              repoUrl,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF0284C7)),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton.icon(
-            onPressed: () {
-              Clipboard.setData(const ClipboardData(text: apkUrl));
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Download link copied to clipboard!')),
-              );
-            },
-            icon: const Icon(Icons.copy_rounded, size: 16),
-            label: const Text('Copy APK Link'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
+  Future<void> _openUrl(String urlString) async {
+    final uri = Uri.parse(urlString);
+    try {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        await launchUrl(uri);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open link: $e')),
+        );
+      }
+    }
   }
 }

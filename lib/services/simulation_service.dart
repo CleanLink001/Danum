@@ -300,6 +300,7 @@ class SimulationService extends ChangeNotifier {
           
           _logs.clear();
           _logs.addAll(tempLogs);
+          _purgeOldLogs();
           notifyListeners();
         } catch (e) {
           debugPrint('Error parsing historical logs from Firebase: $e');
@@ -329,6 +330,11 @@ class SimulationService extends ChangeNotifier {
     }, onError: (error) {
       debugPrint('Firebase controls stream error: $error');
     });
+  }
+
+  void _purgeOldLogs() {
+    final cutoff = DateTime.now().subtract(const Duration(days: 180));
+    _logs.removeWhere((log) => log.timestamp.isBefore(cutoff));
   }
 
   void stopSimulation() {

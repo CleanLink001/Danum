@@ -24,6 +24,7 @@ void main() async {
   await authService.init();
 
   final auditService = AuditService();
+  await auditService.init();
   auditService.fetchAuditLogs(authService);
 
   final simulationService = SimulationService();

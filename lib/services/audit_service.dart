@@ -1,11 +1,12 @@
 import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/audit_log.dart';
 import 'auth_service.dart';
 
 class AuditService with ChangeNotifier {
+  static const String _storageKey = 'danum_audit_logs_cache';
   final List<AuditLog> _logs = [];
   bool _isLoading = false;
 
@@ -13,7 +14,53 @@ class AuditService with ChangeNotifier {
   bool get isLoading => _isLoading;
 
   AuditService() {
-    _seedDefaultLogs();
+    _initFromStorage();
+  }
+
+  Future<void> init() async {
+    await _initFromStorage();
+  }
+
+  /// Automatically purges records that are older than 6 months (180 days)
+  void _purgeOldLogs() {
+    final cutoff = DateTime.now().subtract(const Duration(days: 180));
+    _logs.removeWhere((log) => log.timestamp.isBefore(cutoff));
+  }
+
+  Future<void> _initFromStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final storedJson = prefs.getString(_storageKey);
+      if (storedJson != null && storedJson.isNotEmpty) {
+        final decoded = jsonDecode(storedJson);
+        if (decoded is List) {
+          final loaded = decoded.map((e) => AuditLog.fromJson(Map<String, dynamic>.from(e))).toList();
+          _logs.clear();
+          _logs.addAll(loaded);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading cached audit logs: $e');
+    }
+
+    _purgeOldLogs();
+
+    if (_logs.isEmpty) {
+      _seedDefaultLogs();
+      _saveToPrefs();
+    } else {
+      notifyListeners();
+    }
+  }
+
+  Future<void> _saveToPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = jsonEncode(_logs.map((e) => e.toJson()).toList());
+      await prefs.setString(_storageKey, jsonString);
+    } catch (e) {
+      debugPrint('Error saving audit logs to cache: $e');
+    }
   }
 
   void _seedDefaultLogs() {
@@ -30,8 +77,8 @@ class AuditService with ChangeNotifier {
       ),
       AuditLog(
         id: 2,
-        userName: 'Developer',
-        userEmail: 'test@example.com',
+        userName: 'Operator',
+        userEmail: 'operator@danum.local',
         category: 'SECURITY',
         action: 'User Session Started',
         details: 'Logged into Danum Water Monitor system',
@@ -40,8 +87,8 @@ class AuditService with ChangeNotifier {
       ),
       AuditLog(
         id: 3,
-        userName: 'Developer',
-        userEmail: 'test@example.com',
+        userName: 'Operator',
+        userEmail: 'operator@danum.local',
         category: 'SETTINGS',
         action: 'Cloud Sync Interval Updated',
         details: 'Sync interval configured to 10 seconds',
@@ -65,13 +112,20 @@ class AuditService with ChangeNotifier {
           final fetched = (data['logs'] as List).map((e) => AuditLog.fromJson(e)).toList();
           
           if (fetched.isNotEmpty) {
-            _logs.clear();
-            _logs.addAll(fetched);
+            final existingIds = _logs.map((e) => e.id).whereType<int>().toSet();
+            for (var log in fetched) {
+              if (log.id != null && !existingIds.contains(log.id)) {
+                _logs.add(log);
+              }
+            }
+            _logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+            _purgeOldLogs();
+            await _saveToPrefs();
           }
         }
       }
     } catch (e) {
-      debugPrint('Error fetching audit logs from API: $e. Using local audit log trail.');
+      debugPrint('Error fetching audit logs from API: $e. Retaining local persistent audit trail.');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -79,12 +133,12 @@ class AuditService with ChangeNotifier {
   }
 
   Future<void> logEvent({
-    required AuthService authService,
+    AuthService? authService,
     required String category,
     required String action,
     required String details,
   }) async {
-    final currentUser = authService.currentUser;
+    final currentUser = authService?.currentUser;
     final userName = currentUser?['name'] ?? 'System Operator';
     final userEmail = currentUser?['email'] ?? 'operator@danum.local';
 
@@ -100,22 +154,26 @@ class AuditService with ChangeNotifier {
     );
 
     _logs.insert(0, localLog);
+    _purgeOldLogs();
+    await _saveToPrefs();
     notifyListeners();
 
-    try {
-      final url = '${authService.baseUrl}/log_audit.php';
-      await http.post(
-        Uri.parse(url),
-        body: jsonEncode({
-          'user_name': userName,
-          'user_email': userEmail,
-          'category': category,
-          'action': action,
-          'details': details,
-        }),
-      ).timeout(const Duration(seconds: 3));
-    } catch (e) {
-      debugPrint('Failed to post audit log to backend: $e');
+    if (authService != null) {
+      try {
+        final url = '${authService.baseUrl}/log_audit.php';
+        await http.post(
+          Uri.parse(url),
+          body: jsonEncode({
+            'user_name': userName,
+            'user_email': userEmail,
+            'category': category,
+            'action': action,
+            'details': details,
+          }),
+        ).timeout(const Duration(seconds: 3));
+      } catch (e) {
+        debugPrint('Failed to post audit log to backend: $e');
+      }
     }
   }
 }

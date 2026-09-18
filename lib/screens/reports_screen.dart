@@ -99,21 +99,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
   List<WaterQualityData> _getFilteredRawLogs(List<WaterQualityData> logs) {
     if (logs.isEmpty) return logs;
     final now = DateTime.now();
+    final sixMonthsAgo = now.subtract(const Duration(days: 180));
+    final validLogs = logs.where((e) => e.timestamp.isAfter(sixMonthsAgo)).toList();
 
     if (_presetFilter == 'Today') {
       final startOfToday = DateTime(now.year, now.month, now.day);
-      final filtered = logs.where((e) => e.timestamp.isAfter(startOfToday.subtract(const Duration(milliseconds: 1)))).toList();
-      return filtered.isNotEmpty ? filtered : logs;
+      return validLogs.where((e) => e.timestamp.isAfter(startOfToday.subtract(const Duration(milliseconds: 1)))).toList();
     } else if (_presetFilter == 'Weekly') {
       final weekAgo = now.subtract(const Duration(days: 7));
-      final filtered = logs.where((e) => e.timestamp.isAfter(weekAgo)).toList();
-      return filtered.isNotEmpty ? filtered : logs;
+      return validLogs.where((e) => e.timestamp.isAfter(weekAgo)).toList();
     } else if (_presetFilter == 'Monthly') {
       final monthAgo = now.subtract(const Duration(days: 30));
-      final filtered = logs.where((e) => e.timestamp.isAfter(monthAgo)).toList();
-      return filtered.isNotEmpty ? filtered : logs;
+      return validLogs.where((e) => e.timestamp.isAfter(monthAgo)).toList();
     } else if (_presetFilter == 'Custom') {
-      List<WaterQualityData> result = List.from(logs);
+      List<WaterQualityData> result = List.from(validLogs);
 
       if (_selectedDate != null) {
         DateTime dayStart = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day, 0, 0, 0);
@@ -138,27 +137,26 @@ class _ReportsScreenState extends State<ReportsScreen> {
       return result;
     }
 
-    return logs; // 'All'
+    return validLogs; // 'All' - strictly within 6 months
   }
 
   List<AuditLog> _getFilteredAuditLogs(List<AuditLog> auditLogs) {
     if (auditLogs.isEmpty) return auditLogs;
     final now = DateTime.now();
+    final sixMonthsAgo = now.subtract(const Duration(days: 180));
+    final validLogs = auditLogs.where((e) => e.timestamp.isAfter(sixMonthsAgo)).toList();
 
     if (_presetFilter == 'Today') {
       final startOfToday = DateTime(now.year, now.month, now.day);
-      final filtered = auditLogs.where((e) => e.timestamp.isAfter(startOfToday.subtract(const Duration(milliseconds: 1)))).toList();
-      return filtered.isNotEmpty ? filtered : auditLogs;
+      return validLogs.where((e) => e.timestamp.isAfter(startOfToday.subtract(const Duration(milliseconds: 1)))).toList();
     } else if (_presetFilter == 'Weekly') {
       final weekAgo = now.subtract(const Duration(days: 7));
-      final filtered = auditLogs.where((e) => e.timestamp.isAfter(weekAgo)).toList();
-      return filtered.isNotEmpty ? filtered : auditLogs;
+      return validLogs.where((e) => e.timestamp.isAfter(weekAgo)).toList();
     } else if (_presetFilter == 'Monthly') {
       final monthAgo = now.subtract(const Duration(days: 30));
-      final filtered = auditLogs.where((e) => e.timestamp.isAfter(monthAgo)).toList();
-      return filtered.isNotEmpty ? filtered : auditLogs;
+      return validLogs.where((e) => e.timestamp.isAfter(monthAgo)).toList();
     } else if (_presetFilter == 'Custom') {
-      List<AuditLog> result = List.from(auditLogs);
+      List<AuditLog> result = List.from(validLogs);
 
       if (_selectedDate != null) {
         DateTime dayStart = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day, 0, 0, 0);
@@ -179,7 +177,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       return result;
     }
 
-    return auditLogs;
+    return validLogs;
   }
 
   String _getFilterDescription() {
@@ -228,7 +226,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2023),
+      firstDate: DateTime.now().subtract(const Duration(days: 180)),
       lastDate: DateTime.now().add(const Duration(days: 1)),
       builder: (context, child) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -312,6 +310,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         children: [
           _buildFilterChipsBar(),
           _buildActiveFilterInfoBar(_activeTab == 'Audit Trail' ? filteredAuditLogs.length : filteredRawLogs.length),
+          _buildRetentionWarningBanner(),
           _buildSectionTabToggle(),
           _buildViewModeToggle(_activeTab == 'Audit Trail' ? filteredAuditLogs.length : totalTelemetryItems),
           Expanded(
@@ -476,6 +475,45 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 onTap: _resetFilter,
                 child: const Text('Reset', style: TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold)),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRetentionWarningBanner() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.amber.withValues(alpha: isDark ? 0.12 : 0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.amber.withValues(alpha: isDark ? 0.35 : 0.45),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.info_outline_rounded,
+              color: Colors.amber,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Data Retention Notice: Records older than 6 months (180 days) are automatically deleted to optimize database storage.',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E),
+                  height: 1.3,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -942,7 +980,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             final d = await showDatePicker(
                               context: context,
                               initialDate: exportDate ?? DateTime.now(),
-                              firstDate: DateTime(2023),
+                              firstDate: DateTime.now().subtract(const Duration(days: 180)),
                               lastDate: DateTime.now().add(const Duration(days: 1)),
                             );
                             if (d != null) setModalState(() => exportDate = d);

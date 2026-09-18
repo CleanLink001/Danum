@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../models/water_quality.dart';
 import '../services/simulation_service.dart';
 import '../services/settings_service.dart';
+import '../services/audit_service.dart';
+import '../services/auth_service.dart';
 import '../services/ai_filter_predictor.dart';
 import '../widgets/status_card.dart';
 import '../widgets/overall_status.dart';
@@ -323,6 +325,14 @@ class DashboardScreen extends StatelessWidget {
                     _showUnsafeWaterWarningDialog(context, data, simulationService);
                   } else {
                     simulationService.setValveState(newValue);
+                    final audit = Provider.of<AuditService>(context, listen: false);
+                    final auth = Provider.of<AuthService>(context, listen: false);
+                    audit.logEvent(
+                      authService: auth,
+                      category: 'VALVE_CONTROL',
+                      action: newValue ? 'Valve Manually Opened' : 'Valve Manually Closed',
+                      details: 'User manually switched solenoid valve ${newValue ? 'OPEN' : 'CLOSED'}',
+                    );
                   }
                 },
               ),
@@ -356,7 +366,17 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 if (isManual)
                   TextButton(
-                    onPressed: () => simulationService.disableValveOverride(),
+                    onPressed: () {
+                      simulationService.disableValveOverride();
+                      final audit = Provider.of<AuditService>(context, listen: false);
+                      final auth = Provider.of<AuthService>(context, listen: false);
+                      audit.logEvent(
+                        authService: auth,
+                        category: 'VALVE_CONTROL',
+                        action: 'Valve Auto-Safety Resumed',
+                        details: 'Manual override deactivated. Restored automatic solenoid safety cutoff.',
+                      );
+                    },
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       minimumSize: const Size(0, 30),
@@ -437,6 +457,14 @@ class DashboardScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).pop();
                 simulationService.setValveState(true);
+                final audit = Provider.of<AuditService>(context, listen: false);
+                final auth = Provider.of<AuthService>(context, listen: false);
+                audit.logEvent(
+                  authService: auth,
+                  category: 'VALVE_CONTROL',
+                  action: 'Valve Force-Opened (Unsafe Water)',
+                  details: 'User override: Solenoid valve force-opened despite unsafe water (pH: ${data.ph.toStringAsFixed(1)}, TDS: ${data.tds.toStringAsFixed(0)}, Turbidity: ${data.turbidity.toStringAsFixed(1)})',
+                );
               },
               child: const Text('FORCE OPEN VALVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
