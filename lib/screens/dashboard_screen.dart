@@ -790,34 +790,77 @@ class DashboardScreen extends StatelessWidget {
             const SizedBox(height: 24),
             Row(
               children: [
-                const Icon(Icons.cleaning_services_rounded, color: Color(0xFF0284C7), size: 28),
+                const Icon(Icons.build_circle_rounded, color: Color(0xFF0284C7), size: 28),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(settings.translate('guide_title'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: textColor)),
-                      Text('Simple 4-step maintenance process', style: TextStyle(fontSize: 12, color: subColor)),
+                      Text('5-step filter replacement & flushing procedure', style: TextStyle(fontSize: 12, color: subColor)),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             Expanded(
               child: ListView(
                 children: [
-                  _buildGuideStep(context, '1', 'Turn Off Main Water', 'Shut off the main water valve going into your ESP32 Danum monitoring unit.'),
-                  _buildGuideStep(context, '2', 'Open Reverse Flushing Valve', 'Open the flush tap or reverse valve for 2 minutes to wash away trapped mud and dirt.'),
-                  _buildGuideStep(context, '3', 'Check Screen Turbidity (NTU)', 'Observe your LCD screen or phone screen. NTU clarity should drop below 1.5 NTU.'),
-                  _buildGuideStep(context, '4', 'Resume Fresh Water Flow', 'Close the flush valve and turn back on the main water supply for clean drinking water.'),
+                  _buildGuideStep(context, '1', 'Turn Off Faucet Valve', 'Turn off the foset valve to stop incoming water flow.'),
+                  _buildGuideStep(context, '2', 'Run Flushing Valve (3 Mins)', 'Turn on the flushing valve, let it run for 3 minutes, then turn it off.'),
+                  _buildGuideStep(context, '3', 'Close Pump Valve & Replace Filters', 'Close the pump valve and replace all the filters with new ones.'),
+                  _buildGuideStep(context, '4', 'Rinse Filters & Pipes (1-3 Mins)', 'Open the flushing valve again to rinse the filters/pipes of any dirt remaining for 1-3 minutes, then close the valve again.'),
+                  _buildGuideStep(context, '5', 'Resume Water Flow', 'Resume the water flow of the foset valve.'),
+                  Container(
+                    margin: const EdgeInsets.only(top: 4, bottom: 12),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.35)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.info_outline_rounded, color: Color(0xFFF59E0B), size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'IMPORTANT NOTE',
+                                style: TextStyle(
+                                  color: Color(0xFFF59E0B),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'If the solenoid valve is not open, it means that the water is still dirty and may need to be flushed more until clean.',
+                                style: TextStyle(
+                                  color: textColor.withValues(alpha: 0.9),
+                                  fontSize: 12,
+                                  height: 1.4,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-              height: 56,
+              height: 54,
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/simulation_service.dart';
 import '../services/audit_service.dart';
-import '../services/csv_service.dart';
 import '../models/water_quality.dart';
 import '../models/audit_log.dart';
 import '../services/settings_service.dart';
@@ -87,7 +86,7 @@ class ReportsScreen extends StatefulWidget {
 }
 
 class _ReportsScreenState extends State<ReportsScreen> {
-  String _activeTab = 'Telemetry'; // 'Telemetry', '3-Sensor Diagnostics', or 'Audit Trail'
+  String _activeTab = 'Telemetry'; // 'Telemetry' or 'Audit Trail'
   String _presetFilter = 'Today';   // 'All', 'Today', 'Weekly', 'Monthly', 'Custom'
   
   DateTime? _selectedDate;
@@ -304,7 +303,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             child: IconButton(
               onPressed: () => _showExportModal(context, allLogs, auditService.logs),
               icon: const Icon(Icons.output_rounded, color: Color(0xFF0284C7)),
-              tooltip: 'Export & Download PDF / CSV Report',
+              tooltip: 'Export & Download PDF Report',
             ),
           ),
         ],
@@ -331,10 +330,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           return _buildShowMoreButton(filteredAuditLogs.length - displayedCount);
                         }
                         return const SizedBox.shrink();
-                      }
-
-                      if (_activeTab == '3-Sensor Diagnostics') {
-                        return _buildSensorDiagnosticsSection(context, filteredRawLogs, index);
                       }
 
                       if (index == 0) {
@@ -370,7 +365,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   int _getItemCount(int displayedCount, bool hasMoreLogs) {
     if (_activeTab == 'Audit Trail') return displayedCount + (hasMoreLogs ? 1 : 0);
-    if (_activeTab == '3-Sensor Diagnostics') return 4;
     return 2 + displayedCount + (hasMoreLogs ? 1 : 0);
   }
 
@@ -504,7 +498,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
         child: Row(
           children: [
             _buildTabItem('Telemetry'),
-            _buildTabItem('3-Sensor Diagnostics'),
             _buildTabItem('Audit Trail'),
           ],
         ),
@@ -755,57 +748,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return const SizedBox.shrink(); // Placeholder for trends chart block
   }
 
-  Widget _buildSensorDiagnosticsSection(BuildContext context, List<WaterQualityData> logs, int index) {
-    return _buildSensorHealthCard(
-      context,
-      sensorName: 'Sensor Diagnostics',
-      pinInfo: 'GPIO Diagnostic',
-      targetRange: 'WHO Safe Standards',
-      currentAvg: '1.0',
-      unit: 'NTU',
-      compliancePct: 100.0,
-      color: Colors.blueAccent,
-      statusLabel: 'OK',
-      desc: '3-Sensor continuous hardware telemetry health check.',
-    );
-  }
-
-  Widget _buildSensorHealthCard(
-    BuildContext context, {
-    required String sensorName,
-    required String pinInfo,
-    required String targetRange,
-    required String currentAvg,
-    required String unit,
-    required double compliancePct,
-    required Color color,
-    required String statusLabel,
-    required String desc,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = Theme.of(context).cardTheme.color;
-    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final subColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(sensorName, style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 4),
-          Text(desc, style: TextStyle(color: subColor, fontSize: 12)),
-        ],
-      ),
-    );
-  }
-
   Widget _buildRawLogTile(BuildContext context, WaterQualityData rawData) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = Theme.of(context).cardTheme.color;
@@ -1012,8 +954,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   ),
                   const Spacer(),
 
-                  // Export Action Options: Print PDF, Download PDF, Download CSV
-                  Text('AVAILABLE EXPORT FORMATS ($recordCount records)', style: TextStyle(color: subColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.8)),
+                  // Export Action Options: Download PDF, Print PDF
+                  Text('PDF EXPORT OPTIONS ($recordCount records)', style: TextStyle(color: subColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.8)),
                   const SizedBox(height: 10),
 
                   Column(
@@ -1043,59 +985,27 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       ),
                       const SizedBox(height: 10),
 
-                      Row(
-                        children: [
-                          // 2. Print PDF Option
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: recordCount == 0 ? null : () async {
-                                Navigator.pop(context);
-                                String period = exportDate != null ? '${exportDate!.year}-${exportDate!.month}-${exportDate!.day}' : 'Filtered History';
-                                if (exportTarget == 'Telemetry') {
-                                  await PdfService.generateAndPrintReport(filteredTelemetry, 'Water Quality Telemetry Report', filterPeriod: period);
-                                } else {
-                                  await PdfService.generateAndPrintAuditTrailReport(filteredAudit, 'System Audit Trail Report', filterPeriod: period);
-                                }
-                              },
-                              icon: const Icon(Icons.print_rounded, size: 16, color: Color(0xFF0284C7)),
-                              label: const Text('Print PDF', style: TextStyle(fontSize: 12)),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                            ),
+                      // 2. Print PDF Option
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: recordCount == 0 ? null : () async {
+                            Navigator.pop(context);
+                            String period = exportDate != null ? '${exportDate!.year}-${exportDate!.month}-${exportDate!.day}' : 'Filtered History';
+                            if (exportTarget == 'Telemetry') {
+                              await PdfService.generateAndPrintReport(filteredTelemetry, 'Water Quality Telemetry Report', filterPeriod: period);
+                            } else {
+                              await PdfService.generateAndPrintAuditTrailReport(filteredAudit, 'System Audit Trail Report', filterPeriod: period);
+                            }
+                          },
+                          icon: const Icon(Icons.print_rounded, size: 18, color: Color(0xFF0284C7)),
+                          label: Text('Print PDF ($exportTarget)'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(color: Color(0xFF0284C7)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           ),
-                          const SizedBox(width: 10),
-
-                          // 3. Download CSV Option
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: recordCount == 0 ? null : () async {
-                                Navigator.pop(context);
-                                String filename = exportTarget == 'Telemetry' 
-                                    ? 'Danum_Telemetry_${DateTime.now().millisecondsSinceEpoch}.csv'
-                                    : 'Danum_AuditTrail_${DateTime.now().millisecondsSinceEpoch}.csv';
-
-                                String csvString = exportTarget == 'Telemetry'
-                                    ? CsvService.generateTelemetryCsv(filteredTelemetry)
-                                    : CsvService.generateAuditTrailCsv(filteredAudit);
-
-                                final messenger = ScaffoldMessenger.of(context);
-                                final res = await CsvService.exportAndSaveCsv(csvContent: csvString, filename: filename);
-                                if (res != null) {
-                                  messenger.showSnackBar(SnackBar(content: Text(res)));
-                                }
-                              },
-                              icon: const Icon(Icons.table_chart_rounded, size: 16, color: Colors.green),
-                              label: const Text('Download CSV', style: TextStyle(fontSize: 12, color: Colors.green)),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                side: const BorderSide(color: Colors.green),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
