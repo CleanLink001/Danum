@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'screens/main_screen.dart';
 import 'services/simulation_service.dart';
 import 'services/notification_service.dart';
@@ -13,6 +14,18 @@ import 'theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
+  // Authenticate app instance with Firebase so Realtime Database rules (auth != null) pass
+  try {
+    if (FirebaseAuth.instance.currentUser == null) {
+      await FirebaseAuth.instance.signInAnonymously();
+      debugPrint('Firebase Auth: Signed in anonymously (UID: ${FirebaseAuth.instance.currentUser?.uid})');
+    } else {
+      debugPrint('Firebase Auth: Already authenticated (UID: ${FirebaseAuth.instance.currentUser?.uid})');
+    }
+  } catch (e) {
+    debugPrint('Firebase Auth initialization warning: $e');
+  }
   
   final notificationService = NotificationService();
   await notificationService.init();

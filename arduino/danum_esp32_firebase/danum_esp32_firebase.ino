@@ -1,7 +1,7 @@
 // ======================================================
 // Danum Water Quality Monitoring System (ESP32)
 // 3 Calibrated Sensors + Firebase RTDB Sync + Buzzer Alert
-// Uses Legacy Database Secret Token (works with open rules, no login required)
+// Supports Firebase Authentication (Option A Secure Rules)
 // ======================================================
 
 #include <EEPROM.h>
@@ -35,15 +35,18 @@ void writeSolenoidState(bool open) {
 #define VREF    3.3
 
 // ================= Network & Firebase Config =================
-#define WIFI_SSID         "NEUE_REGEL"
-#define WIFI_PASSWORD     "empirE1991"
+#define WIFI_SSID         "Danum_WiFi"
+#define WIFI_PASSWORD     "123456789"
+
+// Firebase Web API Key (Found in Firebase Console -> Project Settings -> General)
+#define FIREBASE_API_KEY  "AIzaSyCy4r4PjVx9bNTa7Vfk7u7NQ7BouyOqeJY"
 
 // Firebase Realtime Database URL (asia-southeast1)
 #define FIREBASE_URL      "https://danum-3bbe4-default-rtdb.asia-southeast1.firebasedatabase.app"
 
-// DATABASE SECRET — Get this from:
-// Firebase Console → Project Settings → Service Accounts → Database Secrets
-// Click "Show" next to the secret, copy and paste it here
+// Auth Mode: 1 = Firebase Anonymous Auth (Matches Option A Rules), 2 = Database Secret
+#define USE_FIREBASE_AUTH 1
+
 #define FIREBASE_DB_SECRET "7axJWjsIFLY0hTqJ760SiUiywyUYLSa6v2zhBFQz"
 
 // ================= Calibration Values =================
@@ -175,10 +178,23 @@ void setup()
 
     connectWiFi();
 
-    // Firebase Setup using Legacy Database Secret (no email/token auth needed)
-    Serial.println("Initializing Firebase with Database Secret...");
+    // ================= Firebase Setup =================
+    Serial.println("Initializing Firebase...");
     config.database_url = FIREBASE_URL;
+
+#if USE_FIREBASE_AUTH == 1
+    // Method 1: Firebase Anonymous Authentication (Option A Secure Rules)
+    config.api_key = FIREBASE_API_KEY;
+    Serial.println("Authenticating anonymously with Firebase...");
+    if (Firebase.signUp(&config, &auth, "", "")) {
+        Serial.println("Firebase Auth: Anonymous Sign-In Successful!");
+    } else {
+        Serial.printf("Firebase Auth Warning: %s (Will retry on reconnect)\n", config.signer.signupError.message.c_str());
+    }
+#else
+    // Method 2: Legacy Database Secret (Admin fallback)
     config.signer.tokens.legacy_token = FIREBASE_DB_SECRET;
+#endif
 
     Firebase.reconnectWiFi(true);
     Firebase.begin(&config, &auth);
