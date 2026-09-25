@@ -8,13 +8,13 @@
 
 [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Web-blue.svg)](https://github.com/CleanLink001/Danum)
 [![Flutter](https://img.shields.io/badge/Built%20With-Flutter-02569B?logo=flutter)](https://flutter.dev)
-[![Release](https://img.shields.io/badge/Release-v1.0.0-emerald.svg)](https://github.com/CleanLink001/Danum/releases)
+[![Release](https://img.shields.io/badge/Release-v1.0.1-emerald.svg)](https://github.com/CleanLink001/Danum/releases)
 [![License](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 
 <br/>
 
 <a href="https://github.com/CleanLink001/Danum/raw/main/app-release.apk">
-  <img src="https://img.shields.io/badge/📥_Download_APK-Direct_Download_(v1.0.0)-0284C7?style=for-the-badge&logo=android&logoColor=white" alt="Download APK" />
+  <img src="https://img.shields.io/badge/📥_Download_APK-Direct_Download_(v1.0.1)-0284C7?style=for-the-badge&logo=android&logoColor=white" alt="Download APK" />
 </a>
 &nbsp;&nbsp;
 <a href="https://github.com/CleanLink001/Danum/releases">
@@ -30,12 +30,12 @@
 You can download and install the Android app directly from this repository:
 
 ### Direct Download Links
-* **Direct APK Download**: [app-release.apk](https://github.com/CleanLink001/Danum/raw/main/app-release.apk)
+* **Direct APK Download**: [app-release.apk (v1.0.1)](https://github.com/CleanLink001/Danum/raw/main/app-release.apk)
 * **GitHub Releases**: [Latest Release](https://github.com/CleanLink001/Danum/releases/latest)
 * **Repository**: [`https://github.com/CleanLink001/Danum.git`](https://github.com/CleanLink001/Danum.git)
 
 ### Android Installation Steps
-1. Click **[Download APK](https://github.com/CleanLink001/Danum/raw/main/app-release.apk)** to save `app-release.apk` to your phone or tablet.
+1. Click **[Download APK (v1.0.1)](https://github.com/CleanLink001/Danum/raw/main/app-release.apk)** to save `app-release.apk` to your phone or tablet.
 2. Once the download finishes, tap the notification or locate the file in your **Downloads** folder.
 3. If Android prompts that installation from unknown sources is restricted:
    - Tap **Settings** in the prompt.
@@ -51,7 +51,7 @@ You can download and install the Android app directly from this repository:
 - **Dynamic 3-Droplet Loading Screen**: Fluid 3-water-droplet circular chase animation that smoothly transitions when navigating through tabs and loading data.
 - **Intelligent Threshold Alerts**: Instant notifications and safety advisories when water parameters deviate from safe standards.
 - **Audit & Analytics Reports**: Interactive charts, historical trends, and exportable water quality reports.
-- **Bilingual Interface**: Seamless switching between English and Filipino (Tagalog).
+- **Trilingual Localization Interface**: 100% complete app-wide language switching between English, Filipino (Tagalog), and authentic Kapampangan (Pampango).
 
 ---
 
