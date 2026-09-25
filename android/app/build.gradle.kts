@@ -47,8 +47,4 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-    // Firebase BoM for version alignment
-    implementation(platform("com.google.firebase:firebase-bom:34.15.0"))
-    // Firebase Analytics
-    implementation("com.google.firebase:firebase-analytics")
 }

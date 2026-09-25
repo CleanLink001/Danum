@@ -11,33 +11,10 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController(text: 'user@example.com');
-  final _passwordController = TextEditingController(text: 'Password123!');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSavedAccounts();
-  }
-
-  Future<void> _loadSavedAccounts() async {
-    final auth = Provider.of<AuthService>(context, listen: false);
-    final userEmail = await auth.getAuthorizedUserEmail();
-    if (mounted) {
-      setState(() {
-        _emailController.text = userEmail;
-      });
-    }
-  }
-
-  void _selectAccount(String email, String defaultPassword) {
-    setState(() {
-      _emailController.text = email;
-      _passwordController.text = defaultPassword;
-    });
-  }
 
   @override
   void dispose() {
@@ -48,7 +25,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = Provider.of<AuthService>(context, listen: false);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
     final subColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
@@ -131,73 +107,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Select an authorized account or enter your credentials',
+                    'Sign in with your authorized internal account',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: subColor, fontSize: 13),
                   ),
-                  const SizedBox(height: 25),
-
-                  // Quick Account Selectors (User & Tester)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FutureBuilder<String>(
-                          future: auth.getAuthorizedUserEmail(),
-                          initialData: 'user@example.com',
-                          builder: (context, snap) {
-                            final userEmail = snap.data ?? 'user@example.com';
-                            final isSelected = _emailController.text.trim().toLowerCase() == userEmail.toLowerCase();
-                            return OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                side: BorderSide(
-                                  color: isSelected ? const Color(0xFF3B82F6) : (isDark ? Colors.white12 : Colors.black12),
-                                  width: isSelected ? 2 : 1,
-                                ),
-                                backgroundColor: isSelected ? const Color(0xFF3B82F6).withValues(alpha: 0.12) : Colors.transparent,
-                              ),
-                              onPressed: () => _selectAccount(userEmail, 'Password123!'),
-                              icon: const Icon(Icons.person_rounded, size: 16, color: Color(0xFF38BDF8)),
-                              label: const Text(
-                                'User Account',
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: FutureBuilder<String>(
-                          future: auth.getAuthorizedTestEmail(),
-                          initialData: 'test@example.com',
-                          builder: (context, snap) {
-                            final testEmail = snap.data ?? 'test@example.com';
-                            final isSelected = _emailController.text.trim().toLowerCase() == testEmail.toLowerCase();
-                            return OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                side: BorderSide(
-                                  color: isSelected ? const Color(0xFF818CF8) : (isDark ? Colors.white12 : Colors.black12),
-                                  width: isSelected ? 2 : 1,
-                                ),
-                                backgroundColor: isSelected ? const Color(0xFF818CF8).withValues(alpha: 0.12) : Colors.transparent,
-                              ),
-                              onPressed: () => _selectAccount(testEmail, 'Password123!'),
-                              icon: const Icon(Icons.science_rounded, size: 16, color: Color(0xFF818CF8)),
-                              label: const Text(
-                                'Tester Account',
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 35),
 
                   _buildInputField(
                     label: 'Account Email',
