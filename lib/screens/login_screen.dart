@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import '../services/settings_service.dart';
 import '../widgets/loading_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -25,6 +26,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final settings = Provider.of<SettingsService>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
     final subColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
@@ -33,6 +35,19 @@ class _LoginScreenState extends State<LoginScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.language_rounded, color: Color(0xFF38BDF8)),
+            tooltip: settings.translate('language'),
+            onSelected: (String lang) => settings.setLanguage(lang),
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'English', child: Text('English')),
+              const PopupMenuItem(value: 'Tagalog', child: Text('Tagalog')),
+              const PopupMenuItem(value: 'Kapampangan', child: Text('Kapampangan')),
+            ],
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Stack(
         children: [
@@ -74,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'Danum Monitor',
+                    settings.translate('danum_monitor'),
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: textColor, letterSpacing: -0.5),
                   ),
@@ -87,14 +102,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.3)),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.lock_outline_rounded, size: 13, color: Color(0xFF38BDF8)),
-                          SizedBox(width: 6),
+                          const Icon(Icons.lock_outline_rounded, size: 13, color: Color(0xFF38BDF8)),
+                          const SizedBox(width: 6),
                           Text(
-                            'INTERNAL USE ONLY',
-                            style: TextStyle(
+                            settings.translate('internal_use_only'),
+                            style: const TextStyle(
                               color: Color(0xFF38BDF8),
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -107,15 +122,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Sign in with your authorized internal account',
+                    settings.translate('login_subtitle'),
                     textAlign: TextAlign.center,
                     style: TextStyle(color: subColor, fontSize: 13),
                   ),
                   const SizedBox(height: 35),
 
                   _buildInputField(
-                    label: 'Account Email',
-                    hint: 'user@example.com or test@example.com',
+                    label: settings.translate('account_email'),
+                    hint: settings.translate('email_hint'),
                     icon: Icons.email_rounded,
                     controller: _emailController,
                     isDark: isDark,
@@ -124,8 +139,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
                   _buildInputField(
-                    label: 'Password',
-                    hint: 'Enter your password',
+                    label: settings.translate('password'),
+                    hint: settings.translate('password_hint'),
                     icon: Icons.lock_rounded,
                     controller: _passwordController,
                     isPassword: true,
@@ -136,10 +151,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     subColor: subColor,
                   ),
                   const SizedBox(height: 25),
-                  _buildLoginButton(),
+                  _buildLoginButton(settings),
                   const SizedBox(height: 25),
                   Text(
-                    'Restricted Access • Authorized User and Tester accounts only\nAccount details can be modified in the Profile section.',
+                    settings.translate('login_footer_note'),
                     textAlign: TextAlign.center,
                     style: TextStyle(color: subColor.withValues(alpha: 0.6), fontSize: 11, height: 1.4),
                   ),
@@ -148,8 +163,8 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           if (_isLoading)
-            const DanumLoadingScreen(
-              statusText: 'Authenticating Account...',
+            DanumLoadingScreen(
+              statusText: settings.translate('authenticating_account'),
               isOverlay: true,
             ),
         ],
@@ -226,7 +241,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildLoginButton() {
+  Widget _buildLoginButton(SettingsService settings) {
     return Container(
       height: 56,
       decoration: BoxDecoration(
@@ -243,18 +258,18 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: _isLoading ? null : _handleLogin,
+          onTap: _isLoading ? null : () => _handleLogin(settings),
           borderRadius: BorderRadius.circular(18),
-          child: const Center(
+          child: Center(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'SIGN IN',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 1),
+                  settings.translate('sign_in'),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 1),
                 ),
-                SizedBox(width: 10),
-                Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+                const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
               ],
             ),
           ),
@@ -263,12 +278,12 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _handleLogin() async {
+  void _handleLogin(SettingsService settings) async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      _showToast('Please fill in both email and password', isError: true);
+      _showToast(settings.translate('err_fill_email_password'), isError: true);
       return;
     }
 
@@ -280,7 +295,23 @@ class _LoginScreenState extends State<LoginScreen> {
     if (mounted) {
       setState(() => _isLoading = false);
       if (error != null) {
-        _showToast(error, isError: true);
+        String localizedError = error;
+        if (error.contains('Access Denied')) {
+          localizedError = settings.translate('err_access_denied');
+        } else if (error.contains('Incorrect password')) {
+          localizedError = settings.translate('err_incorrect_password');
+        } else if (error.contains('at least 6 characters')) {
+          localizedError = settings.translate('err_weak_password');
+        } else if (error.contains('badly formatted')) {
+          localizedError = settings.translate('err_invalid_email');
+        } else if (error.contains('disabled')) {
+          localizedError = settings.translate('err_account_disabled');
+        } else if (error.contains('Too many failed')) {
+          localizedError = settings.translate('err_too_many_requests');
+        } else if (error.contains('Login failed')) {
+          localizedError = settings.translate('err_login_failed');
+        }
+        _showToast(localizedError, isError: true);
       }
     }
   }

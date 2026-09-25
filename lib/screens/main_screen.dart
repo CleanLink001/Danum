@@ -17,7 +17,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   bool _isNavigating = false;
-  String _navLoadingText = 'Loading System...';
+  String _navLoadingKey = 'loading_system';
 
   final List<Widget> _pages = [
     const DashboardScreen(),
@@ -26,11 +26,11 @@ class _MainScreenState extends State<MainScreen> {
     const ProfileScreen(),
   ];
 
-  final List<String> _loadingLabels = [
-    'Loading Dashboard...',
-    'Synchronizing Sensor Telemetry...',
-    'Loading Water Quality Reports...',
-    'Fetching Account Profile...',
+  final List<String> _loadingKeys = [
+    'loading_dashboard',
+    'syncing_telemetry',
+    'loading_reports',
+    'fetching_profile',
   ];
 
   void _onTabSelected(int index) {
@@ -38,7 +38,7 @@ class _MainScreenState extends State<MainScreen> {
 
     setState(() {
       _isNavigating = true;
-      _navLoadingText = _loadingLabels[index];
+      _navLoadingKey = _loadingKeys[index];
     });
 
     Future.delayed(const Duration(milliseconds: 700), () {
@@ -68,7 +68,7 @@ class _MainScreenState extends State<MainScreen> {
               duration: const Duration(milliseconds: 150),
               opacity: _isNavigating ? 1.0 : 0.0,
               child: DanumLoadingScreen(
-                statusText: _navLoadingText,
+                statusText: settings.translate(_navLoadingKey),
                 isOverlay: true,
               ),
             ),

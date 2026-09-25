@@ -64,8 +64,8 @@ void main() async {
     if (data.status == 'Poor' && shouldNotify('general_poor')) {
       notificationService.showNotification(
         id: 0,
-        title: '🔴 UNSAFE WATER QUALITY',
-        body: 'Overall Score: ${data.score}/100. Please check your water filter and source.',
+        title: settingsService.translate('alert_unsafe_quality_title'),
+        body: settingsService.translate('alert_unsafe_quality_body', {'score': data.score.toString()}),
       );
     }
 
@@ -73,16 +73,16 @@ void main() async {
     if (data.ph < 6.5 && shouldNotify('ph_acidic')) {
       notificationService.showNotification(
         id: 10,
-        title: '🔴 ACIDIC WATER DETECTED',
-        body: 'Critical pH level: ${data.ph.toStringAsFixed(1)} (Too Acidic). Water may be corrosive.',
+        title: settingsService.translate('alert_ph_acidic_title'),
+        body: settingsService.translate('alert_ph_acidic_body', {'value': data.ph.toStringAsFixed(1)}),
       );
     } 
     // 3. pH Alkaline alert
     else if (data.ph > 8.5 && shouldNotify('ph_alkaline')) {
       notificationService.showNotification(
         id: 11,
-        title: '🔴 ALKALINE WATER DETECTED',
-        body: 'Critical pH level: ${data.ph.toStringAsFixed(1)} (Too Alkaline). High mineral/scale risk.',
+        title: settingsService.translate('alert_ph_alkaline_title'),
+        body: settingsService.translate('alert_ph_alkaline_body', {'value': data.ph.toStringAsFixed(1)}),
       );
     }
 
@@ -90,8 +90,8 @@ void main() async {
     if (data.tds > 300.0 && shouldNotify('tds_high')) {
       notificationService.showNotification(
         id: 12,
-        title: '⚠️ HIGH SOLIDS (TDS) ALERT',
-        body: 'TDS: ${data.tds.toStringAsFixed(0)} ppm. High dissolved minerals, check filter membrane.',
+        title: settingsService.translate('alert_tds_high_title'),
+        body: settingsService.translate('alert_tds_high_body', {'value': data.tds.toStringAsFixed(0)}),
       );
     }
 
@@ -99,8 +99,8 @@ void main() async {
     if (data.turbidity > 5.0 && shouldNotify('turbidity_high')) {
       notificationService.showNotification(
         id: 13,
-        title: '⚠️ CLOUDY WATER DETECTED',
-        body: 'Turbidity: ${data.turbidity.toStringAsFixed(1)} NTU. High turbidity indicates muddy/dirty water.',
+        title: settingsService.translate('alert_turb_high_title'),
+        body: settingsService.translate('alert_turb_high_body', {'value': data.turbidity.toStringAsFixed(1)}),
       );
     }
 
@@ -108,8 +108,8 @@ void main() async {
     if (data.filterHealth < 20.0 && shouldNotify('filter_health')) {
       notificationService.showNotification(
         id: 1,
-        title: '⚠️ FILTER REPLACEMENT NEEDED',
-        body: 'Your filter health is at ${data.filterHealth.toStringAsFixed(0)}%. Please replace filter soon.',
+        title: settingsService.translate('alert_filter_replace_title'),
+        body: settingsService.translate('alert_filter_replace_body', {'value': data.filterHealth.toStringAsFixed(0)}),
       );
     }
   });

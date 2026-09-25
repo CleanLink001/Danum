@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/settings_service.dart';
 
 class SolarStatus extends StatelessWidget {
   final double voltage;
@@ -7,6 +9,7 @@ class SolarStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final settings = Provider.of<SettingsService>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     // Status based on voltage
@@ -16,13 +19,13 @@ class SolarStatus extends StatelessWidget {
     percentage = percentage.clamp(0, 1).toDouble();
 
     if (voltage > 12.5) {
-      status = 'Charging';
+      status = settings.translate('solar_charging');
       statusColor = const Color(0xFF10B981);
     } else if (voltage > 11.5) {
-      status = 'Normal';
+      status = settings.translate('solar_normal');
       statusColor = const Color(0xFFF59E0B);
     } else {
-      status = 'Low Battery';
+      status = settings.translate('solar_low_battery');
       statusColor = const Color(0xFFEF4444);
     }
 
@@ -69,11 +72,11 @@ class SolarStatus extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Solar Power',
+                  settings.translate('solar_power'),
                   style: TextStyle(color: textColor, fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  'Battery Voltage Output',
+                  settings.translate('battery_voltage_output'),
                   style: TextStyle(color: subColor, fontSize: 13),
                 ),
               ],

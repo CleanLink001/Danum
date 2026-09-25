@@ -53,12 +53,12 @@ class _MonitoringScreenState extends State<MonitoringScreen> with SingleTickerPr
           IconButton(
             icon: const Icon(Icons.help_outline_rounded, color: Color(0xFF0284C7)),
             onPressed: () => UIHelpers.showScoreExplanation(context),
-            tooltip: 'Explain Water Quality Score',
+            tooltip: settings.translate('tooltip_score_exp'),
           ),
           IconButton(
             icon: Icon(_showGraphs ? Icons.list_alt_rounded : Icons.show_chart_rounded),
             onPressed: () => setState(() => _showGraphs = !_showGraphs),
-            tooltip: _showGraphs ? 'View Log Archive' : 'View Analysis',
+            tooltip: _showGraphs ? settings.translate('tooltip_view_archive') : settings.translate('tooltip_view_analysis'),
           ),
         ],
       ),
@@ -73,7 +73,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> with SingleTickerPr
           if (!_showGraphs) {
             return SingleChildScrollView(
               padding: const EdgeInsets.all(20),
-              child: _buildHistoryTable(context, history),
+              child: _buildHistoryTable(context, history, settings),
             );
           }
 
@@ -82,9 +82,9 @@ class _MonitoringScreenState extends State<MonitoringScreen> with SingleTickerPr
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildAdvancedMetricsHeader(history),
+                _buildAdvancedMetricsHeader(history, settings),
                 const SizedBox(height: 25),
-                _buildComparisonChart(history),
+                _buildComparisonChart(history, settings),
                 const SizedBox(height: 30),
                 _buildDetailedTrend(
                   settings.translate('ph_trends'),
@@ -92,7 +92,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> with SingleTickerPr
                   (data) => data.ph,
                   Colors.blueAccent,
                   'pH',
-                  () => _showMetricDetails(context, simulationService, 'ph'),
+                  () => _showMetricDetails(context, simulationService, 'ph', settings),
                 ),
                 const SizedBox(height: 25),
                 _buildDetailedTrend(
@@ -101,7 +101,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> with SingleTickerPr
                   (data) => data.tds,
                   Colors.cyanAccent,
                   'ppm',
-                  () => _showMetricDetails(context, simulationService, 'tds'),
+                  () => _showMetricDetails(context, simulationService, 'tds', settings),
                 ),
                 const SizedBox(height: 25),
                 _buildDetailedTrend(
@@ -110,7 +110,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> with SingleTickerPr
                   (data) => data.turbidity,
                   Colors.deepPurpleAccent,
                   'NTU',
-                  () => _showMetricDetails(context, simulationService, 'turbidity'),
+                  () => _showMetricDetails(context, simulationService, 'turbidity', settings),
                 ),
               ],
             ),
@@ -120,7 +120,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> with SingleTickerPr
     );
   }
 
-  void _showMetricDetails(BuildContext context, SimulationService simulationService, String metricType) {
+  void _showMetricDetails(BuildContext context, SimulationService simulationService, String metricType, SettingsService settings) {
     final data = simulationService.history.isNotEmpty
         ? simulationService.history.last
         : WaterQualityData(
@@ -137,11 +137,11 @@ class _MonitoringScreenState extends State<MonitoringScreen> with SingleTickerPr
       case 'ph':
         UIHelpers.showMetricDetails(
           context, 
-          'pH Level', 
+          settings.translate('ph_level'), 
           data.ph.toStringAsFixed(1), 
           'pH', 
           data.ph >= 6.5 && data.ph <= 8.5, 
-          'The safe range for drinking water is between 6.5 and 8.5. pH levels outside this range can indicate chemical contamination or lead to pipe corrosion.', 
+          settings.translate('ph_info'), 
           '6.5 - 8.5 pH', 
           Colors.blueAccent
         );
@@ -149,11 +149,11 @@ class _MonitoringScreenState extends State<MonitoringScreen> with SingleTickerPr
       case 'tds':
         UIHelpers.showMetricDetails(
           context, 
-          'Total Dissolved Solids', 
+          settings.translate('total_dissolved_solids'), 
           data.tds.toStringAsFixed(0), 
           'ppm', 
           data.tds <= 600, 
-          'TDS represents the amount of minerals, salts, or metals dissolved in water. Levels below 600 ppm are generally considered safe and palatable.', 
+          settings.translate('tds_info'), 
           '< 600 ppm', 
           Colors.cyanAccent
         );
@@ -161,11 +161,11 @@ class _MonitoringScreenState extends State<MonitoringScreen> with SingleTickerPr
       case 'turbidity':
         UIHelpers.showMetricDetails(
           context, 
-          'Turbidity', 
+          settings.translate('turbidity'), 
           data.turbidity.toStringAsFixed(1), 
           'NTU', 
           data.turbidity <= 5, 
-          'Turbidity measures the cloudiness of water. High turbidity can protect bacteria from disinfection and often indicates high particle content.', 
+          settings.translate('turb_info'), 
           '< 5 NTU', 
           Colors.deepPurpleAccent
         );
@@ -190,7 +190,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> with SingleTickerPr
     );
   }
 
-  Widget _buildAdvancedMetricsHeader(List<WaterQualityData> history) {
+  Widget _buildAdvancedMetricsHeader(List<WaterQualityData> history, SettingsService settings) {
     // Calculate session volatility (simple range)
     double phMin = history.map((e) => e.ph).reduce((a, b) => a < b ? a : b);
     double phMax = history.map((e) => e.ph).reduce((a, b) => a > b ? a : b);
@@ -199,11 +199,11 @@ class _MonitoringScreenState extends State<MonitoringScreen> with SingleTickerPr
 
     return Row(
       children: [
-        _buildAdvancedChip('STABILITY', '${(100 - (phMax - phMin) * 20).toStringAsFixed(1)}%', Colors.greenAccent),
+        _buildAdvancedChip(settings.translate('stability'), '${(100 - (phMax - phMin) * 20).toStringAsFixed(1)}%', Colors.greenAccent),
         const SizedBox(width: 10),
-        _buildAdvancedChip('AVG TDS', '${tdsAvg.toInt()}ppm', Colors.cyanAccent),
+        _buildAdvancedChip(settings.translate('avg_tds'), '${tdsAvg.toInt()}ppm', Colors.cyanAccent),
         const SizedBox(width: 10),
-        _buildAdvancedChip('MAX TURB', turbMax.toStringAsFixed(1), Colors.deepPurpleAccent),
+        _buildAdvancedChip(settings.translate('max_turb'), turbMax.toStringAsFixed(1), Colors.deepPurpleAccent),
       ],
     );
   }
@@ -233,7 +233,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> with SingleTickerPr
     );
   }
 
-  Widget _buildComparisonChart(List<WaterQualityData> history) {
+  Widget _buildComparisonChart(List<WaterQualityData> history, SettingsService settings) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = Theme.of(context).cardTheme.color;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
@@ -251,12 +251,12 @@ class _MonitoringScreenState extends State<MonitoringScreen> with SingleTickerPr
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Correlation Analysis', style: TextStyle(color: textColor, fontSize: 14, fontWeight: FontWeight.bold)),
+              Text(settings.translate('correlation_analysis'), style: TextStyle(color: textColor, fontSize: 14, fontWeight: FontWeight.bold)),
               IconButton(
                 icon: const Icon(Icons.info_outline_rounded, size: 16, color: Colors.white38),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
-                onPressed: () => _showCorrelationInfo(context),
+                onPressed: () => _showCorrelationInfo(context, settings),
               ),
             ],
           ),
@@ -313,7 +313,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> with SingleTickerPr
     );
   }
 
-  void _showCorrelationInfo(BuildContext context) {
+  void _showCorrelationInfo(BuildContext context, SettingsService settings) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -326,13 +326,14 @@ class _MonitoringScreenState extends State<MonitoringScreen> with SingleTickerPr
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Correlation Analysis', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(settings.translate('correlation_analysis'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
-            const Text(
-              'This chart shows how different water metrics fluctuate together over time. For example, high turbidity often correlates with changes in TDS or pH levels due to suspended particles.',
+            Text(
+              settings.translate('correlation_desc'),
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white70, height: 1.5),
+              style: const TextStyle(color: Colors.white70, height: 1.5),
             ),
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               height: 56,
@@ -345,7 +346,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> with SingleTickerPr
                   side: BorderSide(color: Colors.blueAccent.withValues(alpha: 0.3)),
                   elevation: 0,
                 ),
-                child: const Text('GOT IT', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+                child: Text(settings.translate('got_it'), style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
               ),
             ),
           ],
@@ -488,7 +489,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> with SingleTickerPr
     );
   }
 
-  Widget _buildHistoryTable(BuildContext context, List<WaterQualityData> history) {
+  Widget _buildHistoryTable(BuildContext context, List<WaterQualityData> history, SettingsService settings) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final subColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
@@ -497,7 +498,7 @@ class _MonitoringScreenState extends State<MonitoringScreen> with SingleTickerPr
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('SENSOR LOG ARCHIVE', style: TextStyle(color: subColor, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1)),
+        Text(settings.translate('sensor_log_archive'), style: TextStyle(color: subColor, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1)),
         const SizedBox(height: 15),
         Container(
           decoration: BoxDecoration(

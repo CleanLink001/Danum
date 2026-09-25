@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/settings_service.dart';
 import 'water_droplets_loader.dart';
 
 /// A full-screen or overlay loading screen featuring:
@@ -7,19 +9,26 @@ import 'water_droplets_loader.dart';
 /// - Silky ocean water waves along the bottom
 /// - "Checking Water Quality..." and "Clean Water • Healthier Tomorrow" typography
 class DanumLoadingScreen extends StatelessWidget {
-  final String statusText;
-  final String subtitleText;
+  final String? statusText;
+  final String? subtitleText;
   final bool isOverlay;
 
   const DanumLoadingScreen({
     super.key,
-    this.statusText = 'Checking Water Quality...',
-    this.subtitleText = 'Clean Water  •  Healthier Tomorrow',
+    this.statusText,
+    this.subtitleText,
     this.isOverlay = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    SettingsService? settings;
+    try {
+      settings = Provider.of<SettingsService>(context, listen: false);
+    } catch (_) {}
+
+    final resolvedStatus = statusText ?? (settings != null ? settings.translate('checking_water_quality') : 'Checking Water Quality...');
+    final resolvedSubtitle = subtitleText ?? (settings != null ? settings.translate('clean_water_motto') : 'Clean Water  •  Healthier Tomorrow');
     // Deep midnight ocean navy gradient matching the reference design
     final bgGradient = LinearGradient(
       begin: Alignment.topCenter,
@@ -67,7 +76,7 @@ class DanumLoadingScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 48),
                   Text(
-                    statusText,
+                    resolvedStatus,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Color(0xFFF1F5F9),
@@ -84,7 +93,7 @@ class DanumLoadingScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    subtitleText,
+                    resolvedSubtitle,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Color(0xFF60A5FA),

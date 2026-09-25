@@ -28,6 +28,18 @@ class OverallStatus extends StatelessWidget {
         statusColor = const Color(0xFFEF4444);
     }
 
+    String localizedStatusTag;
+    switch (status) {
+      case 'Good':
+        localizedStatusTag = settings.translate('good_upper');
+        break;
+      case 'Fair':
+        localizedStatusTag = settings.translate('fair_upper');
+        break;
+      default:
+        localizedStatusTag = settings.translate('poor_upper');
+    }
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
     final subColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
@@ -69,7 +81,7 @@ class OverallStatus extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        status.toUpperCase(),
+                        localizedStatusTag,
                         style: TextStyle(
                           color: statusColor,
                           fontSize: 12,
@@ -117,7 +129,7 @@ class OverallStatus extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'SCORE',
+                        settings.translate('score_upper'),
                         style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: subColor),
                       ),
                     ],

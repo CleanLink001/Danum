@@ -50,7 +50,7 @@ class DashboardScreen extends StatelessWidget {
                 ),
               ),
             ),
-            Text('DANUM ${settings.translate('monitor')}'),
+            Text('${settings.translate('danum_title')} ${settings.translate('monitor')}'),
           ],
         ),
         actions: [
@@ -59,7 +59,7 @@ class DashboardScreen extends StatelessWidget {
             initialData: initialWaterData,
             builder: (context, snapshot) {
               final data = snapshot.data;
-              final hasAlerts = data != null && _getActiveAlerts(data).isNotEmpty;
+              final hasAlerts = data != null && _getActiveAlerts(data, settings).isNotEmpty;
               
               return Stack(
                 alignment: Alignment.center,
@@ -69,7 +69,7 @@ class DashboardScreen extends StatelessWidget {
                       hasAlerts ? Icons.notifications_active_rounded : Icons.notifications_none_rounded,
                       color: hasAlerts ? Colors.orangeAccent : null,
                     ),
-                    onPressed: () => _showNotificationCenter(context, simulationService),
+                    onPressed: () => _showNotificationCenter(context, simulationService, settings),
                   ),
                   if (hasAlerts)
                     Positioned(
@@ -103,8 +103,8 @@ class DashboardScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(
                     settings.isSimulationMode 
-                      ? 'Initializing Local Stream...' 
-                      : 'Connecting to Firebase Realtime Database...',
+                      ? settings.translate('init_local_stream') 
+                      : settings.translate('connecting_firebase'),
                     style: const TextStyle(color: Colors.white54, fontSize: 13),
                   ),
                 ],
@@ -124,7 +124,7 @@ class DashboardScreen extends StatelessWidget {
                 // 1. Overall Water Quality Score Card
                 OverallStatus(
                   data: data,
-                  onTap: () => _showMetricDetails(context, simulationService, 'score'),
+                  onTap: () => _showMetricDetails(context, simulationService, 'score', settings),
                 ),
                 const SizedBox(height: 20),
 
@@ -135,7 +135,7 @@ class DashboardScreen extends StatelessWidget {
                       child: _buildHeaderChip(
                         context,
                         settings.translate('cloud_status'),
-                        settings.isSimulationMode ? 'SIMULATED' : 'FIREBASE LIVE',
+                        settings.isSimulationMode ? settings.translate('simulated') : settings.translate('firebase_live'),
                         settings.isSimulationMode ? const Color(0xFF818CF8) : const Color(0xFF10B981),
                         Icons.cloud_done_rounded,
                       ),
@@ -145,7 +145,7 @@ class DashboardScreen extends StatelessWidget {
                       child: _buildHeaderChip(
                         context,
                         settings.translate('system_status'),
-                        'pH • TDS • NTU',
+                        settings.translate('sensors_chip_subtitle'),
                         const Color(0xFF06B6D4),
                         Icons.sensors_rounded,
                       ),
@@ -169,47 +169,47 @@ class DashboardScreen extends StatelessWidget {
                   childAspectRatio: 1.15,
                   children: [
                     StatusCard(
-                      title: 'pH Level',
+                      title: settings.translate('ph_level'),
                       value: data.ph.toStringAsFixed(1),
                       unit: 'pH',
                       subtitle: settings.translate('ph_sub'),
                       icon: Icons.science_rounded,
                       color: Colors.blueAccent,
-                      onTap: () => _showMetricDetails(context, simulationService, 'ph'),
+                      onTap: () => _showMetricDetails(context, simulationService, 'ph', settings),
                     ),
                     StatusCard(
-                      title: 'TDS',
+                      title: settings.translate('tds'),
                       value: data.tds.toStringAsFixed(0),
                       unit: 'ppm',
                       subtitle: settings.translate('tds_sub'),
                       icon: Icons.water_drop_rounded,
                       color: Colors.cyanAccent,
-                      onTap: () => _showMetricDetails(context, simulationService, 'tds'),
+                      onTap: () => _showMetricDetails(context, simulationService, 'tds', settings),
                     ),
                     StatusCard(
-                      title: 'Turbidity',
+                      title: settings.translate('turbidity'),
                       value: data.turbidity.toStringAsFixed(1),
                       unit: 'NTU',
                       subtitle: settings.translate('turb_sub'),
                       icon: Icons.opacity_rounded,
                       color: Colors.deepPurpleAccent,
-                      onTap: () => _showMetricDetails(context, simulationService, 'turbidity'),
+                      onTap: () => _showMetricDetails(context, simulationService, 'turbidity', settings),
                     ),
                     StatusCard(
-                      title: 'Filter Health',
+                      title: settings.translate('filter_health'),
                       value: '${prediction.filterHealth.toStringAsFixed(0)}%',
-                      unit: 'Life',
-                      subtitle: prediction.filterHealth > 50 ? 'Optimal' : 'Attention',
+                      unit: settings.translate('life_unit'),
+                      subtitle: prediction.filterHealth > 50 ? settings.translate('optimal') : settings.translate('attention'),
                       icon: Icons.filter_alt_rounded,
                       color: prediction.filterHealth > 50 ? const Color(0xFF10B981) : Colors.orangeAccent,
-                      onTap: () => _showMetricDetails(context, simulationService, 'score'),
+                      onTap: () => _showMetricDetails(context, simulationService, 'score', settings),
                     ),
                   ],
                 ),
                 const SizedBox(height: 20),
 
                 // 4. Solenoid Valve Control Switch Card
-                _buildSolenoidValveControlCard(context, data, simulationService),
+                _buildSolenoidValveControlCard(context, data, simulationService, settings),
                 const SizedBox(height: 25),
 
                 // 5. AI Filter Degradation & Flushing Predictor
@@ -223,7 +223,7 @@ class DashboardScreen extends StatelessWidget {
                     IconButton(
                       icon: const Icon(Icons.help_outline_rounded, color: Color(0xFF0284C7), size: 20),
                       onPressed: () => UIHelpers.showScoreExplanation(context),
-                      tooltip: 'Explain Water Quality Score',
+                      tooltip: settings.translate('tooltip_score_exp'),
                     ),
                   ],
                 ),
@@ -237,7 +237,7 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSolenoidValveControlCard(BuildContext context, WaterQualityData data, SimulationService simulationService) {
+  Widget _buildSolenoidValveControlCard(BuildContext context, WaterQualityData data, SimulationService simulationService, SettingsService settings) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = Theme.of(context).cardTheme.color;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
@@ -248,7 +248,7 @@ class DashboardScreen extends StatelessWidget {
     final bool isManual = simulationService.manualValveOverride;
 
     final Color statusColor = isOpen ? const Color(0xFF10B981) : const Color(0xFFEF4444);
-    final String statusText = isOpen ? 'VALVE OPEN (Flow Active)' : 'VALVE CLOSED (Water Shut-off)';
+    final String statusText = isOpen ? settings.translate('valve_open') : settings.translate('valve_closed');
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -291,7 +291,7 @@ class DashboardScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'SOLENOID VALVE',
+                            settings.translate('solenoid_valve'),
                             style: TextStyle(
                               color: textColor,
                               fontSize: 14,
@@ -301,8 +301,8 @@ class DashboardScreen extends StatelessWidget {
                           ),
                           Text(
                             isManual
-                                ? 'Manual Override Active'
-                                : (isSafe ? 'Auto-Cutoff Active (Safe)' : 'Auto-Shutoff (Unsafe Water)'),
+                                ? settings.translate('manual_override_active')
+                                : (isSafe ? settings.translate('auto_cutoff_safe') : settings.translate('auto_shutoff_unsafe')),
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: isManual ? Colors.orangeAccent : (isSafe ? subColor : const Color(0xFFEF4444)),
@@ -322,7 +322,7 @@ class DashboardScreen extends StatelessWidget {
                 inactiveThumbColor: const Color(0xFFEF4444),
                 onChanged: (bool newValue) {
                   if (newValue == true && !isSafe) {
-                    _showUnsafeWaterWarningDialog(context, data, simulationService);
+                    _showUnsafeWaterWarningDialog(context, data, simulationService, settings);
                   } else {
                     simulationService.setValveState(newValue);
                     final audit = Provider.of<AuditService>(context, listen: false);
@@ -382,9 +382,9 @@ class DashboardScreen extends StatelessWidget {
                       minimumSize: const Size(0, 30),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    child: const Text(
-                      'RESUME AUTO',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF818CF8)),
+                    child: Text(
+                      settings.translate('resume_auto'),
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF818CF8)),
                     ),
                   ),
               ],
@@ -395,20 +395,20 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  void _showUnsafeWaterWarningDialog(BuildContext context, WaterQualityData data, SimulationService simulationService) {
+  void _showUnsafeWaterWarningDialog(BuildContext context, WaterQualityData data, SimulationService simulationService, SettingsService settings) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent, size: 28),
-              SizedBox(width: 10),
+              const Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent, size: 28),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'UNSAFE WATER WARNING',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orangeAccent),
+                  settings.translate('force_open_warning_title'),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orangeAccent),
                 ),
               ),
             ],
@@ -417,9 +417,9 @@ class DashboardScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'The system detected that the water is currently NOT safe to consume:',
-                style: TextStyle(fontSize: 13, height: 1.4),
+              Text(
+                settings.translate('force_open_warning_body'),
+                style: const TextStyle(fontSize: 13, height: 1.4),
               ),
               const SizedBox(height: 12),
               Container(
@@ -431,23 +431,23 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    _buildMetricRow('pH Level', data.ph.toStringAsFixed(1), data.ph >= 6.5 && data.ph <= 8.5),
-                    _buildMetricRow('TDS Level', '${data.tds.toStringAsFixed(0)} ppm', data.tds <= 600),
-                    _buildMetricRow('Turbidity', '${data.turbidity.toStringAsFixed(1)} NTU', data.turbidity <= 5),
+                    _buildMetricRow(settings.translate('ph_level'), data.ph.toStringAsFixed(1), data.ph >= 6.5 && data.ph <= 8.5),
+                    _buildMetricRow(settings.translate('tds'), '${data.tds.toStringAsFixed(0)} ppm', data.tds <= 600),
+                    _buildMetricRow(settings.translate('turbidity'), '${data.turbidity.toStringAsFixed(1)} NTU', data.turbidity <= 5),
                   ],
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Opening the valve will allow unsafe water to flow. Are you sure you want to force open the valve?',
-                style: TextStyle(fontSize: 12, color: Colors.white70),
+              Text(
+                settings.translate('force_open_warning_confirm'),
+                style: const TextStyle(fontSize: 12, color: Colors.white70),
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('CANCEL', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold)),
+              child: Text(settings.translate('cancel'), style: const TextStyle(color: Colors.white54, fontWeight: FontWeight.bold)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -466,7 +466,7 @@ class DashboardScreen extends StatelessWidget {
                   details: 'User override: Solenoid valve force-opened despite unsafe water (pH: ${data.ph.toStringAsFixed(1)}, TDS: ${data.tds.toStringAsFixed(0)}, Turbidity: ${data.turbidity.toStringAsFixed(1)})',
                 );
               },
-              child: const Text('FORCE OPEN VALVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text(settings.translate('force_open_confirm_btn'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -568,11 +568,11 @@ class DashboardScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '${prediction.estimatedDaysRemaining} Days',
+                    '${prediction.estimatedDaysRemaining} ${settings.translate('days_unit')}',
                     style: TextStyle(color: textColor, fontWeight: FontWeight.w900, fontSize: 14),
                   ),
                   Text(
-                    'Est. Remaining',
+                    settings.translate('est_remaining'),
                     style: TextStyle(color: subColor, fontSize: 9, fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -585,7 +585,7 @@ class DashboardScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Filter Media Health', style: TextStyle(color: textColor, fontSize: 13, fontWeight: FontWeight.bold)),
+              Text(settings.translate('filter_media_health'), style: TextStyle(color: textColor, fontSize: 13, fontWeight: FontWeight.bold)),
               Text('${prediction.filterHealth.toStringAsFixed(0)}%', style: TextStyle(color: statusColor, fontSize: 18, fontWeight: FontWeight.w900)),
             ],
           ),
@@ -619,12 +619,12 @@ class DashboardScreen extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Baseline Drift: ${prediction.baselineTdsDriftRate > 0 ? "+${prediction.baselineTdsDriftRate.toStringAsFixed(1)}" : "0.0"} ppm/day drift',
+                        '${settings.translate('baseline_drift_label')}: ${prediction.baselineTdsDriftRate > 0 ? "+${prediction.baselineTdsDriftRate.toStringAsFixed(1)}" : "0.0"} ${settings.translate('drift_suffix')}',
                         style: TextStyle(color: textColor, fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                     ),
                     Text(
-                      '${prediction.lifespanDaysRemaining}d remaining',
+                      '${prediction.lifespanDaysRemaining}${settings.translate('days_short')} ${settings.translate('remaining_lower')}',
                       style: const TextStyle(color: Color(0xFF0284C7), fontSize: 12, fontWeight: FontWeight.w900),
                     ),
                   ],
@@ -642,7 +642,7 @@ class DashboardScreen extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Flush Trigger: ${prediction.flushRequired ? "REQUIRED IMMEDIATELY" : "STATUS OPTIMAL"}',
+                        '${settings.translate('flush_trigger_label')}: ${prediction.flushRequired ? settings.translate('required_immediately') : settings.translate('status_optimal')}',
                         style: TextStyle(
                           color: prediction.flushRequired ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
                           fontSize: 12,
@@ -651,7 +651,7 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Spike: ${prediction.startupSpikePeak.toStringAsFixed(1)} NTU',
+                      '${settings.translate('spike_label')}: ${prediction.startupSpikePeak.toStringAsFixed(1)} NTU',
                       style: TextStyle(color: subColor, fontSize: 11),
                     ),
                   ],
@@ -665,7 +665,7 @@ class DashboardScreen extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Safety Forecast: ${prediction.safetyStatusLabel}',
+                        '${settings.translate('safety_forecast_label')}: ${prediction.safetyStatus == WaterSafetyStatus.safe ? settings.translate('safe') : (prediction.safetyStatus == WaterSafetyStatus.warningDegradingTrend ? settings.translate('moderate_tag') : settings.translate('unsafe'))}',
                         style: TextStyle(color: textColor, fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -676,7 +676,7 @@ class DashboardScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        '${prediction.safeWaterWindowHours.toStringAsFixed(0)}h Window',
+                        '${prediction.safeWaterWindowHours.toStringAsFixed(0)}h ${settings.translate('window_label')}',
                         style: const TextStyle(color: Color(0xFF0284C7), fontSize: 10, fontWeight: FontWeight.w900),
                       ),
                     ),
@@ -704,7 +704,7 @@ class DashboardScreen extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'AI Diagnosis: ${prediction.primaryCause}',
+                        '${settings.translate('ai_diagnosis_label')}: ${prediction.primaryCause}',
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                         style: const TextStyle(color: Color(0xFF0284C7), fontSize: 12, fontWeight: FontWeight.w900),
@@ -720,7 +720,7 @@ class DashboardScreen extends StatelessWidget {
                 if (prediction.forecastSummary.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
-                    'Forecast: ${prediction.forecastSummary}',
+                    '${settings.translate('forecast_label')}: ${prediction.forecastSummary}',
                     style: TextStyle(color: subColor, fontSize: 11, fontStyle: FontStyle.italic),
                   ),
                 ],
@@ -730,13 +730,13 @@ class DashboardScreen extends StatelessWidget {
           const SizedBox(height: 20),
 
           // 3-Sensor Clogging & Stress Breakdown
-          Text('3-SENSOR CLOGGING STRESS BREAKDOWN', style: TextStyle(color: subColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+          Text(settings.translate('stress_breakdown_title'), style: TextStyle(color: subColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
           const SizedBox(height: 12),
-          _buildStressBar(context, 'Turbidity Sediment Stress', prediction.sedimentStress, Colors.deepPurpleAccent),
+          _buildStressBar(context, settings.translate('turbidity_stress_label'), prediction.sedimentStress, Colors.deepPurpleAccent, settings),
           const SizedBox(height: 8),
-          _buildStressBar(context, 'TDS Mineral Scaling Stress', prediction.mineralStress, Colors.cyanAccent),
+          _buildStressBar(context, settings.translate('tds_stress_label'), prediction.mineralStress, Colors.cyanAccent, settings),
           const SizedBox(height: 8),
-          _buildStressBar(context, 'pH Chemical Stress', prediction.phStress, Colors.blueAccent),
+          _buildStressBar(context, settings.translate('ph_stress_label'), prediction.phStress, Colors.blueAccent, settings),
 
           const SizedBox(height: 20),
           // Action Button
@@ -764,7 +764,7 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStressBar(BuildContext context, String label, double stressValue, Color color) {
+  Widget _buildStressBar(BuildContext context, String label, double stressValue, Color color, SettingsService settings) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final subColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569);
 
@@ -775,7 +775,7 @@ class DashboardScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(label, style: TextStyle(color: subColor, fontSize: 11, fontWeight: FontWeight.w600)),
-            Text('${stressValue.toInt()}% Stress', style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+            Text('${stressValue.toInt()}% ${settings.translate('stress_unit')}', style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
           ],
         ),
         const SizedBox(height: 4),
@@ -825,7 +825,7 @@ class DashboardScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(settings.translate('guide_title'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: textColor)),
-                      Text('5-step filter replacement & flushing procedure', style: TextStyle(fontSize: 12, color: subColor)),
+                      Text(settings.translate('guide_subtitle'), style: TextStyle(fontSize: 12, color: subColor)),
                     ],
                   ),
                 ),
@@ -835,11 +835,11 @@ class DashboardScreen extends StatelessWidget {
             Expanded(
               child: ListView(
                 children: [
-                  _buildGuideStep(context, '1', 'Turn Off Faucet Valve', 'Turn off the foset valve to stop incoming water flow.'),
-                  _buildGuideStep(context, '2', 'Run Flushing Valve (3 Mins)', 'Turn on the flushing valve, let it run for 3 minutes, then turn it off.'),
-                  _buildGuideStep(context, '3', 'Close Pump Valve & Replace Filters', 'Close the pump valve and replace all the filters with new ones.'),
-                  _buildGuideStep(context, '4', 'Rinse Filters & Pipes (1-3 Mins)', 'Open the flushing valve again to rinse the filters/pipes of any dirt remaining for 1-3 minutes, then close the valve again.'),
-                  _buildGuideStep(context, '5', 'Resume Water Flow', 'Resume the water flow of the foset valve.'),
+                  _buildGuideStep(context, '1', settings.translate('step1_title'), settings.translate('step1_desc')),
+                  _buildGuideStep(context, '2', settings.translate('step2_title'), settings.translate('step2_desc')),
+                  _buildGuideStep(context, '3', settings.translate('step3_title'), settings.translate('step3_desc')),
+                  _buildGuideStep(context, '4', settings.translate('step4_title'), settings.translate('step4_desc')),
+                  _buildGuideStep(context, '5', settings.translate('step5_title'), settings.translate('step5_desc')),
                   Container(
                     margin: const EdgeInsets.only(top: 4, bottom: 12),
                     padding: const EdgeInsets.all(14),
@@ -857,9 +857,9 @@ class DashboardScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'IMPORTANT NOTE',
-                                style: TextStyle(
+                              Text(
+                                settings.translate('important_note'),
+                                style: const TextStyle(
                                   color: Color(0xFFF59E0B),
                                   fontSize: 11,
                                   fontWeight: FontWeight.w900,
@@ -868,7 +868,7 @@ class DashboardScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'If the solenoid valve is not open, it means that the water is still dirty and may need to be flushed more until clean.',
+                                settings.translate('flushing_note_desc'),
                                 style: TextStyle(
                                   color: textColor.withValues(alpha: 0.9),
                                   fontSize: 12,
@@ -897,7 +897,7 @@ class DashboardScreen extends StatelessWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   elevation: 0,
                 ),
-                child: const Text('GOT IT', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+                child: Text(settings.translate('got_it'), style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
               ),
             ),
           ],
@@ -944,7 +944,7 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  void _showMetricDetails(BuildContext context, SimulationService simulationService, String metricType) {
+  void _showMetricDetails(BuildContext context, SimulationService simulationService, String metricType, SettingsService settings) {
     final data = simulationService.history.isNotEmpty
         ? simulationService.history.last
         : WaterQualityData(
@@ -961,11 +961,11 @@ class DashboardScreen extends StatelessWidget {
       case 'ph':
         UIHelpers.showMetricDetails(
           context, 
-          'pH Level', 
+          settings.translate('ph_level'), 
           data.ph.toStringAsFixed(1), 
           'pH', 
           data.ph >= 6.5 && data.ph <= 8.5, 
-          'The safe range for drinking water is between 6.5 and 8.5. pH levels outside this range can indicate chemical contamination or lead to pipe corrosion.', 
+          settings.translate('ph_info'), 
           '6.5 - 8.5 pH', 
           Colors.blueAccent
         );
@@ -973,11 +973,11 @@ class DashboardScreen extends StatelessWidget {
       case 'tds':
         UIHelpers.showMetricDetails(
           context, 
-          'Total Dissolved Solids', 
+          settings.translate('total_dissolved_solids'), 
           data.tds.toStringAsFixed(0), 
           'ppm', 
           data.tds <= 600, 
-          'TDS represents the amount of minerals, salts, or metals dissolved in water. Levels below 600 ppm are generally considered safe and palatable.', 
+          settings.translate('tds_info'), 
           '< 600 ppm', 
           Colors.cyanAccent
         );
@@ -985,11 +985,11 @@ class DashboardScreen extends StatelessWidget {
       case 'turbidity':
         UIHelpers.showMetricDetails(
           context, 
-          'Turbidity', 
+          settings.translate('turbidity'), 
           data.turbidity.toStringAsFixed(1), 
           'NTU', 
           data.turbidity <= 5, 
-          'Turbidity measures the cloudiness of water. High turbidity can protect bacteria from disinfection and often indicates high particle content.', 
+          settings.translate('turb_info'), 
           '< 5 NTU', 
           Colors.deepPurpleAccent
         );
@@ -997,12 +997,12 @@ class DashboardScreen extends StatelessWidget {
       case 'score':
         UIHelpers.showMetricDetails(
           context, 
-          'Water Quality Score', 
+          settings.translate('quality_score_title'), 
           '${data.score}/100', 
-          'Score', 
+          settings.translate('score'), 
           data.isSafe, 
-          'Overall water safety score computed dynamically from pH, TDS, and Turbidity 3-sensor telemetry.', 
-          '>= 80 Safe', 
+          settings.translate('score_info'), 
+          '>= 80 ${settings.translate('safe')}', 
           const Color(0xFF10B981)
         );
         break;
@@ -1041,21 +1041,21 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  List<Map<String, dynamic>> _getActiveAlerts(WaterQualityData data) {
+  List<Map<String, dynamic>> _getActiveAlerts(WaterQualityData data, SettingsService settings) {
     final List<Map<String, dynamic>> alerts = [];
     
     if (data.ph < 6.5) {
       alerts.add({
-        'title': 'Acidic pH Level',
-        'body': 'pH is ${data.ph.toStringAsFixed(1)} (Too Acidic). Water may be corrosive and metallic.',
+        'title': settings.translate('alert_ph_acidic_title'),
+        'body': settings.translate('alert_ph_acidic_body', {'value': data.ph.toStringAsFixed(1)}),
         'severity': 'critical',
         'icon': Icons.science_rounded,
         'color': Colors.redAccent,
       });
     } else if (data.ph > 8.5) {
       alerts.add({
-        'title': 'Alkaline pH Level',
-        'body': 'pH is ${data.ph.toStringAsFixed(1)} (Too Alkaline). High scale-forming/mineral risk.',
+        'title': settings.translate('alert_ph_alkaline_title'),
+        'body': settings.translate('alert_ph_alkaline_body', {'value': data.ph.toStringAsFixed(1)}),
         'severity': 'critical',
         'icon': Icons.science_rounded,
         'color': Colors.redAccent,
@@ -1064,8 +1064,8 @@ class DashboardScreen extends StatelessWidget {
     
     if (data.tds > 300.0) {
       alerts.add({
-        'title': 'High Dissolved Solids (TDS)',
-        'body': 'TDS is ${data.tds.toStringAsFixed(0)} ppm. Dissolved mineral particles are elevated.',
+        'title': settings.translate('alert_tds_high_title'),
+        'body': settings.translate('alert_tds_high_body', {'value': data.tds.toStringAsFixed(0)}),
         'severity': 'warning',
         'icon': Icons.water_drop_rounded,
         'color': Colors.orangeAccent,
@@ -1074,8 +1074,8 @@ class DashboardScreen extends StatelessWidget {
     
     if (data.turbidity > 5.0) {
       alerts.add({
-        'title': 'High Water Turbidity',
-        'body': 'Turbidity is ${data.turbidity.toStringAsFixed(1)} NTU (Cloudy). Higher sedimentation risk.',
+        'title': settings.translate('alert_turb_high_title'),
+        'body': settings.translate('alert_turb_high_body', {'value': data.turbidity.toStringAsFixed(1)}),
         'severity': 'warning',
         'icon': Icons.opacity_rounded,
         'color': Colors.orangeAccent,
@@ -1085,7 +1085,7 @@ class DashboardScreen extends StatelessWidget {
     return alerts;
   }
 
-  void _showNotificationCenter(BuildContext context, SimulationService simulationService) {
+  void _showNotificationCenter(BuildContext context, SimulationService simulationService, SettingsService settings) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -1098,7 +1098,7 @@ class DashboardScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           final data = snapshot.data!;
-          final alerts = _getActiveAlerts(data);
+          final alerts = _getActiveAlerts(data, settings);
           
           return Container(
             height: MediaQuery.of(context).size.height * 0.7,
@@ -1127,9 +1127,9 @@ class DashboardScreen extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'System Alerts',
-                        style: TextStyle(
+                      Text(
+                        settings.translate('system_alerts'),
+                        style: const TextStyle(
                           fontSize: 20, 
                           fontWeight: FontWeight.w900, 
                           color: Colors.white,
@@ -1143,7 +1143,7 @@ class DashboardScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          alerts.isEmpty ? 'NOMINAL' : '${alerts.length} ACTIVE',
+                          alerts.isEmpty ? settings.translate('nominal_chip') : settings.translate('active_chip', {'count': alerts.length.toString()}),
                           style: TextStyle(
                             color: alerts.isEmpty ? Colors.greenAccent : Colors.redAccent,
                             fontWeight: FontWeight.bold,
@@ -1157,7 +1157,7 @@ class DashboardScreen extends StatelessWidget {
                 const SizedBox(height: 20),
                 Expanded(
                   child: alerts.isEmpty
-                    ? _buildEmptyAlertsState(context)
+                    ? _buildEmptyAlertsState(context, settings)
                     : ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         itemCount: alerts.length,
@@ -1243,7 +1243,7 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyAlertsState(BuildContext context) {
+  Widget _buildEmptyAlertsState(BuildContext context, SettingsService settings) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -1267,19 +1267,19 @@ class DashboardScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'All Systems Nominal',
-              style: TextStyle(
+            Text(
+              settings.translate('all_systems_nominal'),
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'No active alerts. All 3 sensor metrics match standard healthy drinking conditions.',
+            Text(
+              settings.translate('no_active_alerts_desc'),
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white54,
                 fontSize: 14,
                 height: 1.5,

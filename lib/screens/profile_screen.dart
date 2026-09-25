@@ -70,7 +70,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('PROFILE'),
+        title: Text(settings.translate('profile')),
         actions: [
           IconButton(
             onPressed: () async {
@@ -88,7 +88,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     );
                     messenger.showSnackBar(
                       SnackBar(
-                        content: Text('Profile updated: $newName'),
+                        content: Text(settings.translate('profile_updated', {'name': newName})),
                         backgroundColor: const Color(0xFF10B981),
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -120,11 +120,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            _buildProfileHeader(user, isDark, textColor, subColor),
+            _buildProfileHeader(user, isDark, textColor, subColor, settings),
             const SizedBox(height: 40),
             
-            _buildSectionTitle(context, 'ACCOUNT SETTINGS'),
-            _buildAccountSettings(auth, isDark, textColor, subColor),
+            _buildSectionTitle(context, settings.translate('account_settings')),
+            _buildAccountSettings(auth, isDark, textColor, subColor, settings),
             
             const SizedBox(height: 40),
             _buildSectionTitle(context, settings.translate('general_settings')),
@@ -135,11 +135,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildSystemPrefs(settings, textColor, subColor),
             
             const SizedBox(height: 30),
-            _buildSectionTitle(context, 'APP & REPOSITORY'),
-            _buildAppInfoCard(context, isDark, textColor, subColor),
+            _buildSectionTitle(context, settings.translate('app_repo_title')),
+            _buildAppInfoCard(context, isDark, textColor, subColor, settings),
             
             const SizedBox(height: 40),
-            _buildLogoutButton(auth),
+            _buildLogoutButton(auth, settings),
             const SizedBox(height: 120),
           ],
         ),
@@ -147,7 +147,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileHeader(Map<String, dynamic>? user, bool isDark, Color textColor, Color subColor) {
+  Widget _buildProfileHeader(Map<String, dynamic>? user, bool isDark, Color textColor, Color subColor, SettingsService settings) {
     return Column(
       children: [
         Stack(
@@ -165,7 +165,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 bottom: 0,
                 right: 0,
                 child: GestureDetector(
-                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Image upload coming soon'))),
+                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(settings.translate('image_upload_soon')))),
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: const BoxDecoration(color: Color(0xFF4F46E5), shape: BoxShape.circle),
@@ -185,7 +185,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textColor),
               decoration: InputDecoration(
-                hintText: 'Enter Name',
+                hintText: settings.translate('enter_name'),
                 filled: true,
                 fillColor: isDark ? Colors.white10 : Colors.black12,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
@@ -203,7 +203,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildAccountSettings(AuthService auth, bool isDark, Color textColor, Color subColor) {
+  Widget _buildAccountSettings(AuthService auth, bool isDark, Color textColor, Color subColor, SettingsService settings) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -213,7 +213,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         children: [
           _buildEditField(
-            label: 'Email Address',
+            label: settings.translate('email_address'),
             controller: _emailController,
             enabled: _isEditingAccount,
             icon: Icons.email_outlined,
@@ -222,7 +222,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (_isEditingAccount) ...[
             const SizedBox(height: 20),
             _buildEditField(
-              label: 'Old Password',
+              label: settings.translate('old_password'),
               controller: _oldPasswordController,
               enabled: true,
               isPassword: true,
@@ -231,7 +231,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 20),
             _buildEditField(
-              label: 'New Password',
+              label: settings.translate('new_password'),
               controller: _newPasswordController,
               enabled: true,
               isPassword: true,
@@ -240,7 +240,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 20),
             _buildEditField(
-              label: 'Confirm New Password',
+              label: settings.translate('confirm_new_password'),
               controller: _confirmPasswordController,
               enabled: true,
               isPassword: true,
@@ -253,7 +253,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             TextButton.icon(
               onPressed: () => setState(() => _isEditingAccount = true),
               icon: const Icon(Icons.security_rounded, size: 18),
-              label: const Text('Update Credentials'),
+              label: Text(settings.translate('update_credentials')),
               style: TextButton.styleFrom(foregroundColor: const Color(0xFF818CF8)),
             )
           else
@@ -272,7 +272,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.5)),
                       foregroundColor: Colors.redAccent,
                     ),
-                    child: const Text('Cancel'),
+                    child: Text(settings.translate('cancel_btn')),
                   ),
                 ),
                 const SizedBox(width: 15),
@@ -280,15 +280,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: ElevatedButton(
                     onPressed: () async {
                       if (_oldPasswordController.text.isEmpty) {
-                        _showError('Old password is required');
+                        _showError(settings.translate('old_pw_required'));
                         return;
                       }
                       if (_newPasswordController.text.isEmpty) {
-                        _showError('New password cannot be empty');
+                        _showError(settings.translate('new_pw_empty'));
                         return;
                       }
                       if (_newPasswordController.text != _confirmPasswordController.text) {
-                        _showError('Passwords do not match');
+                        _showError(settings.translate('pw_not_match'));
                         return;
                       }
 
@@ -312,7 +312,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           action: 'Account Credentials Updated',
                           details: 'Password / security credentials successfully updated for ${_emailController.text.trim()}',
                         );
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Account updated successfully'), backgroundColor: Colors.green));
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(settings.translate('account_updated_success')), backgroundColor: Colors.green));
                       } else {
                         _showError(error);
                       }
@@ -321,7 +321,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       backgroundColor: const Color(0xFF4F46E5),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('Save Changes', style: TextStyle(color: Colors.white)),
+                    child: Text(settings.translate('save_changes_btn'), style: const TextStyle(color: Colors.white)),
                   ),
                 ),
               ],
@@ -390,6 +390,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildGeneralSettings(SettingsService settings, Color textColor, Color subColor) {
+    final darkLabel = settings.translate('theme_dark');
+    final lightLabel = settings.translate('theme_light');
+
     return Column(
       children: [
         _buildSwitchTile(
@@ -404,13 +407,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 await settings.toggleNotifications(true);
                 await notificationService.showNotification(
                   id: 99,
-                  title: '🔔 Notifications Enabled',
-                  body: 'You will receive real-time push alerts when water quality is unsafe.',
+                  title: '🔔 ${settings.translate('notifications')}',
+                  body: settings.translate('notifications_enabled_toast'),
                 );
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: const Text('Notifications enabled successfully!'),
+                      content: Text(settings.translate('notifications_enabled_toast')),
                       backgroundColor: Colors.green,
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -422,7 +425,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: const Text('Notification permission denied by system.'),
+                      content: Text(settings.translate('notifications_denied_toast')),
                       backgroundColor: Colors.orangeAccent,
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -440,9 +443,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _buildDropdownTile(
           Icons.dark_mode, 
           settings.translate('theme_mode'), 
-          settings.themeMode == ThemeMode.dark ? 'Dark' : 'Light', 
-          ['Dark', 'Light'], 
-          (v) => settings.setThemeMode(v == 'Dark' ? ThemeMode.dark : ThemeMode.light), 
+          settings.themeMode == ThemeMode.dark ? darkLabel : lightLabel, 
+          [darkLabel, lightLabel], 
+          (v) => settings.setThemeMode(v == darkLabel ? ThemeMode.dark : ThemeMode.light), 
           textColor, 
           subColor,
         ),
@@ -505,7 +508,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const Icon(Icons.info_outline_rounded, color: Color(0xFF0284C7), size: 18),
                   const SizedBox(width: 8),
                   Text(
-                    'Cloud Sync Rate & Database Lifetime',
+                    settings.translate('cloud_sync_lifetime_title'),
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
@@ -516,11 +519,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                '• How It Works:\n'
-                'Controls how frequently the system uploads real-time water quality sensor metrics (pH, TDS, turbidity, battery) to the cloud database.\n\n'
-                '• Impact on Database Lifetime & Quotas:\n'
-                '• Faster Sync (10s): Provides near-instant telemetry updates and faster emergency alerting, but generates high write traffic, consumes more bandwidth and power, and reaches cloud database storage quotas sooner.\n'
-                '• Slower Sync (30s–60s): Minimizes write frequency, significantly reduces database size accumulation, prevents quota exhaustion, and dramatically extends database lifetime while preserving reliable monitoring.',
+                settings.translate('cloud_sync_lifetime_desc'),
                 style: TextStyle(
                   fontSize: 12,
                   height: 1.45,
@@ -534,11 +533,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildLogoutButton(AuthService auth) {
+  Widget _buildLogoutButton(AuthService auth, SettingsService settings) {
     return ElevatedButton.icon(
       onPressed: () => auth.logout(),
       icon: const Icon(Icons.logout),
-      label: const Text('LOGOUT', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+      label: Text(settings.translate('logout'), style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFFEF4444).withValues(alpha: 0.1),
         foregroundColor: const Color(0xFFEF4444),
@@ -606,7 +605,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildAppInfoCard(BuildContext context, bool isDark, Color textColor, Color subColor) {
+  Widget _buildAppInfoCard(BuildContext context, bool isDark, Color textColor, Color subColor, SettingsService settings) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -649,12 +648,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Danum Monitor',
+                      settings.translate('danum_monitor'),
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Version 1.0.0 (Build 1)',
+                      settings.translate('app_version'),
                       style: TextStyle(fontSize: 12, color: subColor),
                     ),
                   ],
@@ -666,9 +665,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: const Color(0xFF0284C7).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
-                  'Latest',
-                  style: TextStyle(
+                child: Text(
+                  settings.translate('latest'),
+                  style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF0284C7),
@@ -700,7 +699,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () => _openUrl('https://github.com/CleanLink001/Danum'),
                   icon: const Icon(Icons.open_in_browser_rounded, size: 18),
-                  label: const Text('GitHub Repo'),
+                  label: Text(settings.translate('github_repo_btn')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0284C7),
                     foregroundColor: Colors.white,
@@ -714,7 +713,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () => _openUrl('https://github.com/CleanLink001/Danum/raw/main/app-release.apk'),
                   icon: const Icon(Icons.download_rounded, size: 18),
-                  label: const Text('Download APK'),
+                  label: Text(settings.translate('download_apk_btn')),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF0284C7),
                     side: const BorderSide(color: Color(0xFF0284C7)),

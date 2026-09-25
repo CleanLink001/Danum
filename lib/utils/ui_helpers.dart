@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/settings_service.dart';
 
 class UIHelpers {
   static void showMetricDetails(
@@ -11,6 +13,7 @@ class UIHelpers {
     String threshold, 
     Color color
   ) {
+    final settings = Provider.of<SettingsService>(context, listen: false);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
     final subColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569);
@@ -84,13 +87,13 @@ class UIHelpers {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          isSafe ? 'SAFE' : 'UNSAFE',
+                          isSafe ? settings.translate('safe') : settings.translate('unsafe'),
                           style: TextStyle(color: isSafe ? (isDark ? Colors.greenAccent : const Color(0xFF059669)) : Colors.redAccent, fontWeight: FontWeight.w900, fontSize: 16),
                         ),
                       ),
                     ),
                     const SizedBox(height: 25),
-                    _buildInfoCard(context, color, info, 'Safe Threshold:', threshold),
+                    _buildInfoCard(context, color, info, settings.translate('safe_threshold'), threshold),
                     const SizedBox(height: 25),
                     _buildGotItButton(context, color),
                     const SizedBox(height: 20),
@@ -105,6 +108,7 @@ class UIHelpers {
   }
 
   static void showScoreExplanation(BuildContext context) {
+    final settings = Provider.of<SettingsService>(context, listen: false);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
     final subColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569);
@@ -168,8 +172,8 @@ class UIHelpers {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('WATER QUALITY SCORE', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: textColor)),
-                              Text('0 to 100 Safety & Purity Index', style: TextStyle(fontSize: 12, color: subColor)),
+                              Text(settings.translate('score_explanation_title'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: textColor)),
+                              Text(settings.translate('score_index_subtitle'), style: TextStyle(fontSize: 12, color: subColor)),
                             ],
                           ),
                         ),
@@ -188,27 +192,27 @@ class UIHelpers {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Base Target: 100 Points', style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 14)),
+                          Text(settings.translate('base_target_100'), style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 14)),
                           const SizedBox(height: 6),
                           Text(
-                            'The score starts at 100 for ideal water. Deductions are calculated automatically from 3 telemetry sensors:',
+                            settings.translate('score_explanation_body'),
                             style: TextStyle(color: subColor, fontSize: 13, height: 1.4),
                           ),
                           const SizedBox(height: 14),
-                          _buildRuleRow('1. pH Deviation', '-15 pts per 1.0 pH away from 7.0 (Ideal: 6.5–8.5)', Colors.blueAccent),
-                          _buildRuleRow('2. TDS Mineral Scaling', '-0.1 pts per 1 ppm over 50 ppm (Ideal: < 600 ppm)', Colors.cyanAccent),
-                          _buildRuleRow('3. Turbidity Cloudiness', '-10 pts per 1.0 NTU over 1.0 NTU (Ideal: < 5.0 NTU)', Colors.deepPurpleAccent),
+                          _buildRuleRow(settings.translate('rule_ph_title'), settings.translate('rule_ph_desc'), Colors.blueAccent),
+                          _buildRuleRow(settings.translate('rule_tds_title'), settings.translate('rule_tds_desc'), Colors.cyanAccent),
+                          _buildRuleRow(settings.translate('rule_turb_title'), settings.translate('rule_turb_desc'), Colors.deepPurpleAccent),
                         ],
                       ),
                     ),
                     const SizedBox(height: 24),
 
                     // Tiers Legend
-                    Text('STATUS TIERS', style: TextStyle(color: subColor, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                    Text(settings.translate('status_tiers'), style: TextStyle(color: subColor, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1)),
                     const SizedBox(height: 10),
-                    _buildTierRow('81 – 100', 'GOOD / SAFE', 'Water is clean & safe to consume.', const Color(0xFF10B981)),
-                    _buildTierRow('51 – 80', 'FAIR / WARNING', 'Acceptable but approaching safety thresholds.', const Color(0xFFF59E0B)),
-                    _buildTierRow('0 – 50', 'POOR / UNSAFE', 'Unsafe water! Automatic solenoid cut-off active.', const Color(0xFFEF4444)),
+                    _buildTierRow('81 – 100', settings.translate('tier_good_title'), settings.translate('tier_good_desc'), const Color(0xFF10B981)),
+                    _buildTierRow('51 – 80', settings.translate('tier_fair_title'), settings.translate('tier_fair_desc'), const Color(0xFFF59E0B)),
+                    _buildTierRow('0 – 50', settings.translate('tier_poor_title'), settings.translate('tier_poor_desc'), const Color(0xFFEF4444)),
 
                     const SizedBox(height: 24),
                     SizedBox(
@@ -221,7 +225,7 @@ class UIHelpers {
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                         ),
-                        child: const Text('UNDERSTOOD', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+                        child: Text(settings.translate('understood'), style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
                       ),
                     ),
                   ],
@@ -288,6 +292,7 @@ class UIHelpers {
   }
 
   static Widget _buildInfoCard(BuildContext context, Color color, String info, String label, String threshold) {
+    final settings = Provider.of<SettingsService>(context, listen: false);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white70 : const Color(0xFF334155);
     final subColor = isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
@@ -307,7 +312,7 @@ class UIHelpers {
             children: [
               Icon(Icons.info_outline_rounded, color: color, size: 20),
               const SizedBox(width: 10),
-              Text('NEED TO KNOW', style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1)),
+              Text(settings.translate('need_to_know'), style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1)),
             ],
           ),
           const SizedBox(height: 15),
@@ -326,6 +331,7 @@ class UIHelpers {
   }
 
   static Widget _buildGotItButton(BuildContext context, Color color) {
+    final settings = Provider.of<SettingsService>(context, listen: false);
     return SizedBox(
       width: double.infinity,
       height: 56,
@@ -338,7 +344,7 @@ class UIHelpers {
           side: BorderSide(color: color.withValues(alpha: 0.3)),
           elevation: 0,
         ),
-        child: const Text('GOT IT', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+        child: Text(settings.translate('got_it'), style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
       ),
     );
   }

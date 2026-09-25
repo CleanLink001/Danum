@@ -180,11 +180,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return validLogs;
   }
 
-  String _getFilterDescription() {
-    if (_presetFilter == 'Today') return 'Today (Full Day)';
-    if (_presetFilter == 'Weekly') return 'Past 7 Days';
-    if (_presetFilter == 'Monthly') return 'Past 30 Days';
-    if (_presetFilter == 'All') return 'All Historical Records';
+  String _getFilterDescription(SettingsService settings) {
+    if (_presetFilter == 'Today') return settings.translate('filter_today_full');
+    if (_presetFilter == 'Weekly') return settings.translate('filter_past_7_days');
+    if (_presetFilter == 'Monthly') return settings.translate('filter_past_30_days');
+    if (_presetFilter == 'All') return settings.translate('filter_all_records');
 
     if (_selectedDate != null) {
       final dateStr = '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
@@ -195,10 +195,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
       } else if (_endTime != null) {
         return '$dateStr (Until ${_formatTimeOfDay(_endTime!)})';
       }
-      return '$dateStr (Full Day)';
+      return '$dateStr (${settings.translate('filter_today_full')})';
     }
 
-    return 'Custom Filter';
+    return settings.translate('filter_custom');
   }
 
   String _formatTimeOfDay(TimeOfDay tod) {
@@ -289,33 +289,33 @@ class _ReportsScreenState extends State<ReportsScreen> {
           IconButton(
             icon: const Icon(Icons.date_range_rounded, color: Color(0xFF0284C7)),
             onPressed: () => _pickDate(context),
-            tooltip: 'Filter Date & Time',
+            tooltip: settings.translate('tooltip_filter_date'),
           ),
           IconButton(
             icon: const Icon(Icons.help_outline_rounded, color: Color(0xFF0284C7)),
             onPressed: () => UIHelpers.showScoreExplanation(context),
-            tooltip: 'Explain Quality Score',
+            tooltip: settings.translate('tooltip_explain_score'),
           ),
           Padding(
             padding: const EdgeInsets.only(right: 10),
             child: IconButton(
-              onPressed: () => _showExportModal(context, allLogs, auditService.logs),
+              onPressed: () => _showExportModal(context, allLogs, auditService.logs, settings),
               icon: const Icon(Icons.output_rounded, color: Color(0xFF0284C7)),
-              tooltip: 'Export & Download PDF Report',
+              tooltip: settings.translate('tooltip_export_pdf'),
             ),
           ),
         ],
       ),
       body: Column(
         children: [
-          _buildFilterChipsBar(),
-          _buildActiveFilterInfoBar(_activeTab == 'Audit Trail' ? filteredAuditLogs.length : filteredRawLogs.length),
-          _buildRetentionWarningBanner(),
-          _buildSectionTabToggle(),
-          _buildViewModeToggle(_activeTab == 'Audit Trail' ? filteredAuditLogs.length : totalTelemetryItems),
+          _buildFilterChipsBar(settings),
+          _buildActiveFilterInfoBar(_activeTab == 'Audit Trail' ? filteredAuditLogs.length : filteredRawLogs.length, settings),
+          _buildRetentionWarningBanner(settings),
+          _buildSectionTabToggle(settings),
+          _buildViewModeToggle(_activeTab == 'Audit Trail' ? filteredAuditLogs.length : totalTelemetryItems, settings),
           Expanded(
             child: (_activeTab == 'Audit Trail' ? filteredAuditLogs.isEmpty : filteredRawLogs.isEmpty)
-                ? _buildEmptyStateCard()
+                ? _buildEmptyStateCard(settings)
                 : ListView.builder(
                     padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 100),
                     itemCount: _getItemCount(displayedCount, hasMoreLogs),
@@ -326,13 +326,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           return _buildAuditLogTile(context, log);
                         }
                         if (hasMoreLogs) {
-                          return _buildShowMoreButton(filteredAuditLogs.length - displayedCount);
+                          return _buildShowMoreButton(filteredAuditLogs.length - displayedCount, settings);
                         }
                         return const SizedBox.shrink();
                       }
 
                       if (index == 0) {
-                        return _buildSummaryCard(context, filteredRawLogs);
+                        return _buildSummaryCard(context, filteredRawLogs, settings);
                       }
                       if (index == 1) {
                         return _buildTrendsSection(context, filteredRawLogs);
@@ -342,15 +342,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       if (itemIndex < displayedCount) {
                         if (_showRawTelemetryLogs) {
                           final rawData = reversedRawLogs[itemIndex];
-                          return _buildRawLogTile(context, rawData);
+                          return _buildRawLogTile(context, rawData, settings);
                         } else {
                           final session = reversedSessions[itemIndex];
-                          return _buildAveragedLogTile(context, session);
+                          return _buildAveragedLogTile(context, session, settings);
                         }
                       }
 
                       if (hasMoreLogs) {
-                        return _buildShowMoreButton(totalTelemetryItems - displayedCount);
+                        return _buildShowMoreButton(totalTelemetryItems - displayedCount, settings);
                       }
 
                       return const SizedBox.shrink();
@@ -367,7 +367,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return 2 + displayedCount + (hasMoreLogs ? 1 : 0);
   }
 
-  Widget _buildFilterChipsBar() {
+  Widget _buildFilterChipsBar(SettingsService settings) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = Theme.of(context).cardTheme.color;
 
@@ -377,20 +377,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _buildPresetChip('Today'),
+            _buildPresetChip('Today', settings.translate('filter_today')),
             const SizedBox(width: 8),
-            _buildPresetChip('Weekly'),
+            _buildPresetChip('Weekly', settings.translate('filter_weekly')),
             const SizedBox(width: 8),
-            _buildPresetChip('Monthly'),
+            _buildPresetChip('Monthly', settings.translate('filter_monthly')),
             const SizedBox(width: 8),
-            _buildPresetChip('All'),
+            _buildPresetChip('All', settings.translate('filter_all')),
             const SizedBox(width: 8),
             ActionChip(
               avatar: const Icon(Icons.calendar_month_rounded, size: 16, color: Color(0xFF0284C7)),
               label: Text(
                 _selectedDate != null 
                     ? '${_selectedDate!.month}/${_selectedDate!.day}/${_selectedDate!.year}' 
-                    : 'Select Date',
+                    : settings.translate('select_date'),
                 style: TextStyle(
                   color: _presetFilter == 'Custom' ? const Color(0xFF0284C7) : (isDark ? Colors.white70 : const Color(0xFF334155)),
                   fontWeight: _presetFilter == 'Custom' ? FontWeight.bold : FontWeight.normal,
@@ -411,14 +411,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildPresetChip(String presetName) {
-    final isSelected = _presetFilter == presetName;
+  Widget _buildPresetChip(String presetKey, String displayLabel) {
+    final isSelected = _presetFilter == presetKey;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = Theme.of(context).cardTheme.color;
 
     return ChoiceChip(
       label: Text(
-        presetName,
+        displayLabel,
         style: TextStyle(
           color: isSelected ? Colors.white : (isDark ? Colors.white70 : const Color(0xFF334155)),
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -431,7 +431,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       onSelected: (selected) {
         if (selected) {
           setState(() {
-            _presetFilter = presetName;
+            _presetFilter = presetKey;
             _selectedDate = null;
             _startTime = null;
             _endTime = null;
@@ -442,7 +442,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildActiveFilterInfoBar(int matchingCount) {
+  Widget _buildActiveFilterInfoBar(int matchingCount, SettingsService settings) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       child: Container(
@@ -462,7 +462,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '${_getFilterDescription()} • $matchingCount records',
+                      '${_getFilterDescription(settings)} • $matchingCount ${settings.translate('records_count_suffix')}',
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(color: Color(0xFF0284C7), fontSize: 11, fontWeight: FontWeight.bold),
                     ),
@@ -473,7 +473,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             if (_startTime != null || _endTime != null || _selectedDate != null)
               GestureDetector(
                 onTap: _resetFilter,
-                child: const Text('Reset', style: TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                child: Text(settings.translate('reset_filter_btn'), style: const TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold)),
               ),
           ],
         ),
@@ -481,7 +481,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildRetentionWarningBanner() {
+  Widget _buildRetentionWarningBanner(SettingsService settings) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
@@ -505,7 +505,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Data Retention Notice: Records older than 6 months (180 days) are automatically deleted to optimize database storage.',
+                settings.translate('data_retention_notice'),
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
@@ -520,7 +520,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildSectionTabToggle() {
+  Widget _buildSectionTabToggle(SettingsService settings) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = Theme.of(context).cardTheme.color;
 
@@ -535,23 +535,23 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ),
         child: Row(
           children: [
-            _buildTabItem('Telemetry'),
-            _buildTabItem('Audit Trail'),
+            _buildTabItem('Telemetry', settings.translate('tab_telemetry')),
+            _buildTabItem('Audit Trail', settings.translate('tab_audit_trail')),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTabItem(String title) {
-    bool isActive = _activeTab == title;
+  Widget _buildTabItem(String key, String title) {
+    bool isActive = _activeTab == key;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final subColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569);
 
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() {
-          _activeTab = title;
+          _activeTab = key;
           _visibleLogLimit = 15;
         }),
         child: AnimatedContainer(
@@ -575,7 +575,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildViewModeToggle(int totalItems) {
+  Widget _buildViewModeToggle(int totalItems, SettingsService settings) {
     if (_activeTab != 'Telemetry') return const SizedBox.shrink();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final subColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569);
@@ -587,8 +587,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
         children: [
           Text(
             _showRawTelemetryLogs 
-              ? 'RAW SAMPLES ($totalItems READINGS)'
-              : 'SESSION BATCHES ($totalItems SESSIONS)',
+              ? settings.translate('raw_samples_count', {'count': totalItems.toString()})
+              : settings.translate('session_batches_count', {'count': totalItems.toString()}),
             style: TextStyle(color: subColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.8),
           ),
           InkWell(
@@ -606,7 +606,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   Icon(_showRawTelemetryLogs ? Icons.layers_outlined : Icons.list_alt_rounded, size: 14, color: const Color(0xFF0284C7)),
                   const SizedBox(width: 6),
                   Text(
-                    _showRawTelemetryLogs ? 'View Batches' : 'View Raw Logs',
+                    _showRawTelemetryLogs ? settings.translate('view_batches') : settings.translate('view_raw_logs'),
                     style: const TextStyle(color: Color(0xFF0284C7), fontSize: 10, fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -618,7 +618,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildEmptyStateCard() {
+  Widget _buildEmptyStateCard(SettingsService settings) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = Theme.of(context).cardTheme.color;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
@@ -638,10 +638,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
           children: [
             const Icon(Icons.find_in_page_outlined, size: 48, color: Color(0xFF0284C7)),
             const SizedBox(height: 16),
-            Text('No Records Found', style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(settings.translate('no_records_found'), style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 8),
             Text(
-              'No data matches your selected date and time filter: ${_getFilterDescription()}',
+              settings.translate('no_records_desc', {'filter': _getFilterDescription(settings)}),
               textAlign: TextAlign.center,
               style: TextStyle(color: subColor, fontSize: 12),
             ),
@@ -649,7 +649,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ElevatedButton.icon(
               onPressed: _resetFilter,
               icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Reset Filter'),
+              label: Text(settings.translate('reset_filter_full')),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0284C7),
                 foregroundColor: Colors.white,
@@ -743,7 +743,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildSummaryCard(BuildContext context, List<WaterQualityData> logs) {
+  Widget _buildSummaryCard(BuildContext context, List<WaterQualityData> logs, SettingsService settings) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = Theme.of(context).cardTheme.color;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
@@ -767,16 +767,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('TELEMETRY COMPLIANCE SUMMARY', style: TextStyle(color: subColor, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1)),
+              Text(settings.translate('compliance_summary_title'), style: TextStyle(color: subColor, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(color: Colors.greenAccent.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-                child: Text('$compliance% SAFE', style: const TextStyle(color: Colors.greenAccent, fontSize: 9, fontWeight: FontWeight.w900)),
+                child: Text(settings.translate('pct_safe', {'pct': compliance}), style: const TextStyle(color: Colors.greenAccent, fontSize: 9, fontWeight: FontWeight.w900)),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          Text('$safeCount of $total sensor samples indicate safe drinking water.', style: TextStyle(color: textColor, fontSize: 13, fontWeight: FontWeight.bold)),
+          Text(settings.translate('safe_samples_summary', {'safe': safeCount.toString(), 'total': total.toString()}), style: TextStyle(color: textColor, fontSize: 13, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -786,7 +786,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return const SizedBox.shrink(); // Placeholder for trends chart block
   }
 
-  Widget _buildRawLogTile(BuildContext context, WaterQualityData rawData) {
+  Widget _buildRawLogTile(BuildContext context, WaterQualityData rawData, SettingsService settings) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = Theme.of(context).cardTheme.color;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
@@ -817,7 +817,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
-              rawData.isSafe ? 'SAFE' : 'UNSAFE',
+              rawData.isSafe ? settings.translate('safe') : settings.translate('unsafe'),
               style: TextStyle(color: rawData.isSafe ? Colors.greenAccent : Colors.redAccent, fontSize: 9, fontWeight: FontWeight.w900),
             ),
           ),
@@ -826,19 +826,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildAveragedLogTile(BuildContext context, AveragedLogSession session) {
+  Widget _buildAveragedLogTile(BuildContext context, AveragedLogSession session, SettingsService settings) {
     final data = session.summaryData;
-    return _buildRawLogTile(context, data);
+    return _buildRawLogTile(context, data, settings);
   }
 
-  Widget _buildShowMoreButton(int remaining) {
+  Widget _buildShowMoreButton(int remaining, SettingsService settings) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: ElevatedButton.icon(
           onPressed: () => setState(() => _visibleLogLimit += 25),
           icon: const Icon(Icons.expand_more_rounded),
-          label: Text('Show More Records ($remaining remaining)'),
+          label: Text(settings.translate('show_more_records', {'remaining': remaining.toString()})),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF0284C7).withValues(alpha: 0.15),
             foregroundColor: const Color(0xFF0284C7),
@@ -850,7 +850,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  void _showExportModal(BuildContext context, List<WaterQualityData> telemetryLogs, List<AuditLog> auditLogs) {
+  void _showExportModal(BuildContext context, List<WaterQualityData> telemetryLogs, List<AuditLog> auditLogs, SettingsService settings) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = Theme.of(context).cardTheme.color;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
@@ -913,7 +913,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Export & Report Generator', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: textColor)),
+                      Text(settings.translate('export_modal_title'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: textColor)),
                       IconButton(
                         icon: const Icon(Icons.close_rounded),
                         onPressed: () => Navigator.pop(context),
@@ -921,7 +921,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  Text('Select data category and file format to print or download directly:', style: TextStyle(color: subColor, fontSize: 12)),
+                  Text(settings.translate('export_modal_subtitle'), style: TextStyle(color: subColor, fontSize: 12)),
                   const SizedBox(height: 16),
 
                   // Data Category Selector
@@ -929,7 +929,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     children: [
                       Expanded(
                         child: ChoiceChip(
-                          label: Center(child: Text('Telemetry Data (${filteredTelemetry.length})')),
+                          label: Center(child: Text(settings.translate('telemetry_data', {'count': filteredTelemetry.length.toString()}))),
                           selected: exportTarget == 'Telemetry',
                           selectedColor: const Color(0xFF0284C7),
                           labelStyle: TextStyle(color: exportTarget == 'Telemetry' ? Colors.white : subColor, fontWeight: FontWeight.bold, fontSize: 12),
@@ -941,7 +941,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: ChoiceChip(
-                          label: Center(child: Text('Audit Trail (${filteredAudit.length})')),
+                          label: Center(child: Text(settings.translate('audit_trail_data', {'count': filteredAudit.length.toString()}))),
                           selected: exportTarget == 'Audit Trail',
                           selectedColor: const Color(0xFF0284C7),
                           labelStyle: TextStyle(color: exportTarget == 'Audit Trail' ? Colors.white : subColor, fontWeight: FontWeight.bold, fontSize: 12),
@@ -970,7 +970,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             const Icon(Icons.calendar_today_rounded, color: Color(0xFF0284C7), size: 18),
                             const SizedBox(width: 10),
                             Text(
-                              exportDate != null ? '${exportDate!.year}-${exportDate!.month.toString().padLeft(2, '0')}-${exportDate!.day.toString().padLeft(2, '0')}' : 'All Dates Filtered',
+                              exportDate != null ? '${exportDate!.year}-${exportDate!.month.toString().padLeft(2, '0')}-${exportDate!.day.toString().padLeft(2, '0')}' : settings.translate('all_dates_filtered'),
                               style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 13),
                             ),
                           ],
@@ -985,7 +985,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             );
                             if (d != null) setModalState(() => exportDate = d);
                           },
-                          child: const Text('Change Date'),
+                          child: Text(settings.translate('change_date')),
                         ),
                       ],
                     ),
@@ -993,7 +993,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   const Spacer(),
 
                   // Export Action Options: Download PDF, Print PDF
-                  Text('PDF EXPORT OPTIONS ($recordCount records)', style: TextStyle(color: subColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.8)),
+                  Text(settings.translate('pdf_export_options', {'count': recordCount.toString()}), style: TextStyle(color: subColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.8)),
                   const SizedBox(height: 10),
 
                   Column(
@@ -1012,7 +1012,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             }
                           },
                           icon: const Icon(Icons.download_rounded, size: 18),
-                          label: Text('Download / Save PDF ($exportTarget)'),
+                          label: Text(settings.translate('download_save_pdf', {'target': exportTarget == 'Telemetry' ? settings.translate('tab_telemetry') : settings.translate('tab_audit_trail')})),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF0284C7),
                             foregroundColor: Colors.white,
@@ -1037,7 +1037,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             }
                           },
                           icon: const Icon(Icons.print_rounded, size: 18, color: Color(0xFF0284C7)),
-                          label: Text('Print PDF ($exportTarget)'),
+                          label: Text(settings.translate('print_pdf', {'target': exportTarget == 'Telemetry' ? settings.translate('tab_telemetry') : settings.translate('tab_audit_trail')})),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             side: const BorderSide(color: Color(0xFF0284C7)),
