@@ -1,17 +1,31 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/audit_log.dart';
 import 'auth_service.dart';
 
 class AuditService with ChangeNotifier {
+  static const String _firebaseDatabaseUrl = 
+      'https://danum-3bbe4-default-rtdb.asia-southeast1.firebasedatabase.app';
   static const String _storageKey = 'danum_audit_logs_cache';
   final List<AuditLog> _logs = [];
   bool _isLoading = false;
 
   List<AuditLog> get logs => List.unmodifiable(_logs);
   bool get isLoading => _isLoading;
+
+  FirebaseDatabase _getFirebaseDatabase() {
+    try {
+      return FirebaseDatabase.instanceFor(
+        app: Firebase.app(),
+        databaseURL: _firebaseDatabaseUrl,
+      );
+    } catch (e) {
+      return FirebaseDatabase.instance;
+    }
+  }
 
   AuditService() {
     _initFromStorage();
@@ -72,7 +86,7 @@ class AuditService with ChangeNotifier {
         category: 'VALVE_CONTROL',
         action: 'Auto Safety Rule Active',
         details: 'Monitoring water quality sensors (pH, TDS, Turbidity) for solenoid safety',
-        ipAddress: '127.0.0.1',
+        ipAddress: 'Firebase Cloud',
         timestamp: DateTime.now().subtract(const Duration(minutes: 45)),
       ),
       AuditLog(
@@ -82,7 +96,7 @@ class AuditService with ChangeNotifier {
         category: 'SECURITY',
         action: 'User Session Started',
         details: 'Logged into Danum Water Monitor system',
-        ipAddress: '192.168.1.102',
+        ipAddress: 'Firebase Cloud',
         timestamp: DateTime.now().subtract(const Duration(minutes: 30)),
       ),
       AuditLog(
@@ -92,40 +106,49 @@ class AuditService with ChangeNotifier {
         category: 'SETTINGS',
         action: 'Cloud Sync Interval Updated',
         details: 'Sync interval configured to 10 seconds',
-        ipAddress: '192.168.1.102',
+        ipAddress: 'Firebase Cloud',
         timestamp: DateTime.now().subtract(const Duration(minutes: 15)),
       ),
     ]);
   }
 
-  Future<void> fetchAuditLogs(AuthService authService) async {
+  Future<void> fetchAuditLogs([AuthService? authService]) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final url = '${authService.baseUrl}/get_audit_logs.php';
-      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 4));
+      final dbRef = _getFirebaseDatabase().ref('audit_logs');
+      final snapshot = await dbRef.limitToLast(50).get();
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['success'] == true && data['logs'] is List) {
-          final fetched = (data['logs'] as List).map((e) => AuditLog.fromJson(e)).toList();
-          
-          if (fetched.isNotEmpty) {
-            final existingIds = _logs.map((e) => e.id).whereType<int>().toSet();
-            for (var log in fetched) {
-              if (log.id != null && !existingIds.contains(log.id)) {
-                _logs.add(log);
-              }
+      if (snapshot.exists && snapshot.value != null) {
+        final logsMap = snapshot.value as Map<dynamic, dynamic>;
+        final List<AuditLog> fetched = [];
+
+        logsMap.forEach((key, val) {
+          if (val != null) {
+            try {
+              final map = Map<String, dynamic>.from(val as Map);
+              fetched.add(AuditLog.fromJson(map));
+            } catch (e) {
+              debugPrint('Error parsing audit log item: $e');
             }
-            _logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-            _purgeOldLogs();
-            await _saveToPrefs();
           }
+        });
+
+        if (fetched.isNotEmpty) {
+          final existingIds = _logs.map((e) => e.id).whereType<int>().toSet();
+          for (var log in fetched) {
+            if (log.id != null && !existingIds.contains(log.id)) {
+              _logs.add(log);
+            }
+          }
+          _logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          _purgeOldLogs();
+          await _saveToPrefs();
         }
       }
     } catch (e) {
-      debugPrint('Error fetching audit logs from API: $e. Retaining local persistent audit trail.');
+      debugPrint('Error fetching audit logs from Firebase: $e. Retaining local persistent audit trail.');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -149,7 +172,7 @@ class AuditService with ChangeNotifier {
       category: category,
       action: action,
       details: details,
-      ipAddress: '127.0.0.1',
+      ipAddress: 'Firebase Cloud',
       timestamp: DateTime.now(),
     );
 
@@ -158,22 +181,11 @@ class AuditService with ChangeNotifier {
     await _saveToPrefs();
     notifyListeners();
 
-    if (authService != null) {
-      try {
-        final url = '${authService.baseUrl}/log_audit.php';
-        await http.post(
-          Uri.parse(url),
-          body: jsonEncode({
-            'user_name': userName,
-            'user_email': userEmail,
-            'category': category,
-            'action': action,
-            'details': details,
-          }),
-        ).timeout(const Duration(seconds: 3));
-      } catch (e) {
-        debugPrint('Failed to post audit log to backend: $e');
-      }
+    try {
+      final dbRef = _getFirebaseDatabase().ref('audit_logs');
+      await dbRef.push().set(localLog.toJson());
+    } catch (e) {
+      debugPrint('Failed to push audit log to Firebase: $e');
     }
   }
 }

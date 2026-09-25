@@ -52,6 +52,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final audit = Provider.of<AuditService>(context, listen: false);
     final user = auth.currentUser;
     
+    // Auto-sync controllers if not actively in edit mode
+    if (!_isEditingProfile && user != null && user['name'] != null) {
+      if (_nameController.text != user['name']) {
+        _nameController.text = user['name']!;
+      }
+    }
+    if (!_isEditingAccount && user != null && user['email'] != null) {
+      if (_emailController.text != user['email']) {
+        _emailController.text = user['email']!;
+      }
+    }
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
     final subColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
@@ -64,13 +76,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () async {
               if (_isEditingProfile) {
                 final newName = _nameController.text.trim();
-                await auth.updateProfile(newName, null);
-                audit.logEvent(
-                  authService: auth,
-                  category: 'USER_PROFILE',
-                  action: 'Profile Name Updated',
-                  details: 'User display name changed to "$newName"',
-                );
+                if (newName.isNotEmpty) {
+                  final messenger = ScaffoldMessenger.of(context);
+                  final error = await auth.updateProfile(newName, null);
+                  if (error == null) {
+                    audit.logEvent(
+                      authService: auth,
+                      category: 'USER_PROFILE',
+                      action: 'Profile Name Updated',
+                      details: 'User display name changed to "$newName"',
+                    );
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text('Profile updated: $newName'),
+                        backgroundColor: const Color(0xFF10B981),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    );
+                  } else {
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(error),
+                        backgroundColor: Colors.redAccent,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    );
+                  }
+                }
+              } else {
+                _nameController.text = user?['name'] ?? '';
               }
               if (mounted) {
                 setState(() => _isEditingProfile = !_isEditingProfile);

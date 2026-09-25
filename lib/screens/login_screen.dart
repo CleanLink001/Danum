@@ -11,309 +11,236 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _emailController = TextEditingController(text: 'user@example.com');
+  final _passwordController = TextEditingController(text: 'Password123!');
   bool _isLoading = false;
   bool _obscurePassword = true;
 
-  void _showServerSettingsDialog() {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final ipController = TextEditingController(text: authService.serverIp);
-    bool testing = false;
-    String? testResult;
-    bool testSuccess = false;
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedAccounts();
+  }
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: const Color(0xFF111827),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-                side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
-              ),
-              title: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1F2937),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.dns_rounded, color: Color(0xFF3B82F6), size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Server Settings',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text(
-                    'Set the IP address of your local XAMPP backend. Use 10.0.3.2 for Genymotion, or your PC\'s Wi-Fi IP for real phones.',
-                    style: TextStyle(color: Colors.white54, fontSize: 12, height: 1.4),
-                  ),
-                  const SizedBox(height: 20),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1F2937),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: TextField(
-                      controller: ipController,
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
-                      decoration: const InputDecoration(
-                        labelText: 'Server IP Address',
-                        labelStyle: TextStyle(color: Colors.white38, fontSize: 12),
-                        border: InputBorder.none,
-                        hintText: 'e.g., 10.0.3.2',
-                        hintStyle: TextStyle(color: Colors.white12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  if (testing)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8.0),
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
-                  else if (testResult != null)
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: testSuccess ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: testSuccess ? Colors.green.withValues(alpha: 0.3) : Colors.red.withValues(alpha: 0.3)),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            testSuccess ? Icons.check_circle_rounded : Icons.error_rounded,
-                            color: testSuccess ? Colors.greenAccent : Colors.redAccent,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              testResult!,
-                              style: TextStyle(
-                                color: testSuccess ? Colors.greenAccent : Colors.redAccent,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  const SizedBox(height: 15),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1F2937),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      elevation: 0,
-                    ),
-                    onPressed: () async {
-                      setDialogState(() {
-                        testing = true;
-                        testResult = null;
-                      });
-                      final success = await authService.testConnection(ipController.text);
-                      setDialogState(() {
-                        testing = false;
-                        testSuccess = success;
-                        testResult = success
-                            ? 'Connection Successful! Server is active.'
-                            : 'Connection Failed. Verify XAMPP is running & IP is correct.';
-                      });
-                    },
-                    icon: const Icon(Icons.network_check_rounded, size: 18),
-                    label: const Text('Test Connection'),
-                  ),
-                  const SizedBox(height: 10),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2563EB),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      elevation: 0,
-                    ),
-                    onPressed: () async {
-                      setDialogState(() {
-                        testing = true;
-                        testResult = null;
-                      });
-                      final foundIp = await authService.autoDiscoverServer();
-                      setDialogState(() {
-                        testing = false;
-                        if (foundIp != null) {
-                          ipController.text = foundIp;
-                          testSuccess = true;
-                          testResult = 'Server Auto-Detected at: $foundIp';
-                        } else {
-                          testSuccess = false;
-                          testResult = 'Server Discovery Failed. Make sure PC server is active & on same Wi-Fi.';
-                        }
-                      });
-                    },
-                    icon: const Icon(Icons.travel_explore_rounded, size: 18),
-                    label: const Text('Auto-Detect Server'),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel', style: TextStyle(color: Colors.white38)),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    await authService.updateServerIp(ipController.text);
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Server IP updated to: ${ipController.text}'),
-                          backgroundColor: const Color(0xFF10B981),
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                      );
-                    }
-                  },
-                  child: const Text('Apply', style: TextStyle(color: Color(0xFF3B82F6), fontWeight: FontWeight.bold)),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
+  Future<void> _loadSavedAccounts() async {
+    final auth = Provider.of<AuthService>(context, listen: false);
+    final userEmail = await auth.getAuthorizedUserEmail();
+    if (mounted) {
+      setState(() {
+        _emailController.text = userEmail;
+      });
+    }
+  }
+
+  void _selectAccount(String email, String defaultPassword) {
+    setState(() {
+      _emailController.text = email;
+      _passwordController.text = defaultPassword;
+    });
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<AuthService>(context, listen: false);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
     final subColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-    final iconColor = isDark ? Colors.white38 : const Color(0xFF64748B);
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.settings_suggest_rounded, color: iconColor),
-            tooltip: 'Server Settings',
-            onPressed: _showServerSettingsDialog,
-          ),
-          const SizedBox(width: 15),
-        ],
       ),
       body: Stack(
         children: [
           SingleChildScrollView(
             child: Container(
-              constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height - AppBar().preferredSize.height - MediaQuery.of(context).padding.top),
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height - AppBar().preferredSize.height - MediaQuery.of(context).padding.top,
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 30),
               child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 90,
-                  height: 90,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF0284C7).withValues(alpha: 0.3),
-                        blurRadius: 20,
-                        spreadRadius: 2,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 90,
+                      height: 90,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF0284C7).withValues(alpha: 0.3),
+                            blurRadius: 20,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(45),
+                        child: Image.asset(
+                          'web/icons/Icon-Danum.jpeg',
+                          width: 90,
+                          height: 90,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const Icon(Icons.water_drop_rounded, size: 80, color: Color(0xFF3B82F6)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Danum Monitor',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: textColor, letterSpacing: -0.5),
+                  ),
+                  const SizedBox(height: 6),
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF3B82F6).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.3)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.lock_outline_rounded, size: 13, color: Color(0xFF38BDF8)),
+                          SizedBox(width: 6),
+                          Text(
+                            'INTERNAL USE ONLY',
+                            style: TextStyle(
+                              color: Color(0xFF38BDF8),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Select an authorized account or enter your credentials',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: subColor, fontSize: 13),
+                  ),
+                  const SizedBox(height: 25),
+
+                  // Quick Account Selectors (User & Tester)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FutureBuilder<String>(
+                          future: auth.getAuthorizedUserEmail(),
+                          initialData: 'user@example.com',
+                          builder: (context, snap) {
+                            final userEmail = snap.data ?? 'user@example.com';
+                            final isSelected = _emailController.text.trim().toLowerCase() == userEmail.toLowerCase();
+                            return OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                side: BorderSide(
+                                  color: isSelected ? const Color(0xFF3B82F6) : (isDark ? Colors.white12 : Colors.black12),
+                                  width: isSelected ? 2 : 1,
+                                ),
+                                backgroundColor: isSelected ? const Color(0xFF3B82F6).withValues(alpha: 0.12) : Colors.transparent,
+                              ),
+                              onPressed: () => _selectAccount(userEmail, 'Password123!'),
+                              icon: const Icon(Icons.person_rounded, size: 16, color: Color(0xFF38BDF8)),
+                              label: const Text(
+                                'User Account',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FutureBuilder<String>(
+                          future: auth.getAuthorizedTestEmail(),
+                          initialData: 'test@example.com',
+                          builder: (context, snap) {
+                            final testEmail = snap.data ?? 'test@example.com';
+                            final isSelected = _emailController.text.trim().toLowerCase() == testEmail.toLowerCase();
+                            return OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                side: BorderSide(
+                                  color: isSelected ? const Color(0xFF818CF8) : (isDark ? Colors.white12 : Colors.black12),
+                                  width: isSelected ? 2 : 1,
+                                ),
+                                backgroundColor: isSelected ? const Color(0xFF818CF8).withValues(alpha: 0.12) : Colors.transparent,
+                              ),
+                              onPressed: () => _selectAccount(testEmail, 'Password123!'),
+                              icon: const Icon(Icons.science_rounded, size: 16, color: Color(0xFF818CF8)),
+                              label: const Text(
+                                'Tester Account',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(45),
-                    child: Image.asset(
-                      'web/icons/Icon-Danum.jpeg',
-                      width: 90,
-                      height: 90,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.water_drop_rounded, size: 80, color: Color(0xFF3B82F6)),
-                    ),
+                  const SizedBox(height: 20),
+
+                  _buildInputField(
+                    label: 'Account Email',
+                    hint: 'user@example.com or test@example.com',
+                    icon: Icons.email_rounded,
+                    controller: _emailController,
+                    isDark: isDark,
+                    textColor: textColor,
+                    subColor: subColor,
                   ),
-                ),
+                  const SizedBox(height: 16),
+                  _buildInputField(
+                    label: 'Password',
+                    hint: 'Enter your password',
+                    icon: Icons.lock_rounded,
+                    controller: _passwordController,
+                    isPassword: true,
+                    obscureText: _obscurePassword,
+                    onToggle: () => setState(() => _obscurePassword = !_obscurePassword),
+                    isDark: isDark,
+                    textColor: textColor,
+                    subColor: subColor,
+                  ),
+                  const SizedBox(height: 25),
+                  _buildLoginButton(),
+                  const SizedBox(height: 25),
+                  Text(
+                    'Restricted Access • Authorized User and Tester accounts only\nAccount details can be modified in the Profile section.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: subColor.withValues(alpha: 0.6), fontSize: 11, height: 1.4),
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-              Text(
-                'Welcome Back',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: textColor, letterSpacing: -0.5),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Sign in to your Danum Monitor account',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: subColor, fontSize: 14),
-              ),
-              const SizedBox(height: 60),
-              _buildInputField(
-                label: 'Email',
-                hint: 'Enter your email address',
-                icon: Icons.email_rounded,
-                controller: _emailController,
-                isDark: isDark,
-                textColor: textColor,
-                subColor: subColor,
-              ),
-              const SizedBox(height: 20),
-              _buildInputField(
-                label: 'Password',
-                hint: 'Enter your password',
-                icon: Icons.lock_rounded,
-                controller: _passwordController,
-                isPassword: true,
-                obscureText: _obscurePassword,
-                onToggle: () => setState(() => _obscurePassword = !_obscurePassword),
-                isDark: isDark,
-                textColor: textColor,
-                subColor: subColor,
-              ),
-              const SizedBox(height: 30),
-              _buildLoginButton(),
-              const SizedBox(height: 40),
-              Text(
-                'Danum System - Internal Use Only',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: subColor.withValues(alpha: 0.6), fontSize: 12, fontWeight: FontWeight.bold),
-              ),
-            ],
+            ),
           ),
-        ),
+          if (_isLoading)
+            const DanumLoadingScreen(
+              statusText: 'Authenticating Account...',
+              isOverlay: true,
+            ),
+        ],
       ),
-      if (_isLoading)
-        const DanumLoadingScreen(
-          statusText: 'Authenticating User...',
-          isOverlay: true,
-        ),
-    ],
-  ),
-);
+    );
   }
 
   Widget _buildInputField({
@@ -347,7 +274,7 @@ class _LoginScreenState extends State<LoginScreen> {
               color: iconBg,
               borderRadius: BorderRadius.circular(15),
             ),
-            child: const Icon(Icons.water_drop_rounded, color: Color(0xFF3B82F6), size: 20),
+            child: Icon(icon, color: const Color(0xFF3B82F6), size: 20),
           ),
           const SizedBox(width: 15),
           Expanded(
@@ -387,34 +314,35 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildLoginButton() {
     return Container(
-      height: 60,
+      height: 56,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
-          BoxShadow(color: const Color(0xFF3B82F6).withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 10)),
+          BoxShadow(color: const Color(0xFF3B82F6).withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 8)),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: _isLoading ? null : _handleLogin,
-          borderRadius: BorderRadius.circular(20),
-          child: Center(
-            child: _isLoading 
-              ? const CircularProgressIndicator(color: Colors.white)
-              : const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('SIGN IN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1)),
-                    SizedBox(width: 10),
-                    Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
-                  ],
+          borderRadius: BorderRadius.circular(18),
+          child: const Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'SIGN IN',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 1),
                 ),
+                SizedBox(width: 10),
+                Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+              ],
+            ),
           ),
         ),
       ),
@@ -422,31 +350,35 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleLogin() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields'), backgroundColor: Colors.redAccent),
-      );
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      _showToast('Please fill in both email and password', isError: true);
       return;
     }
 
     setState(() => _isLoading = true);
-    final error = await Provider.of<AuthService>(context, listen: false).login(
-      _emailController.text,
-      _passwordController.text,
-    );
+    final auth = Provider.of<AuthService>(context, listen: false);
+
+    final error = await auth.login(email, password);
     
     if (mounted) {
       setState(() => _isLoading = false);
       if (error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error), 
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
+        _showToast(error, isError: true);
       }
     }
+  }
+
+  void _showToast(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.redAccent : const Color(0xFF10B981),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
   }
 }
