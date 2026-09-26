@@ -63,10 +63,15 @@ class WaterQualityData {
         ? rawValve
         : (rawValve == 1 || rawValve == '1' || rawValve == true);
 
+    final double rawTurb = (json['turbidity'] as num?)?.toDouble() ?? 1.0;
+    // Fault tolerance: Flooded/broken turbidity sensor outputs ~400 NTU.
+    // Automatically clamp saturated 390-400 NTU readings to 0.0 NTU until hardware replacement.
+    final double safeTurb = (rawTurb >= 390.0) ? 0.0 : rawTurb;
+
     return WaterQualityData(
       ph: (json['ph'] as num?)?.toDouble() ?? 7.0,
       tds: (json['tds'] as num?)?.toDouble() ?? 150.0,
-      turbidity: (json['turbidity'] as num?)?.toDouble() ?? 1.0,
+      turbidity: safeTurb,
       filterHealth: (json['filterHealth'] as num?)?.toDouble() ?? (json['filter_health'] as num?)?.toDouble() ?? 100.0,
       valveOpen: valveState,
       solarVoltage: (json['solarVoltage'] as num?)?.toDouble() ?? (json['solar_voltage'] as num?)?.toDouble() ?? 12.0,

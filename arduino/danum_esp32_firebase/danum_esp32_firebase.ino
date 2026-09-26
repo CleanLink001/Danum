@@ -59,6 +59,11 @@ float tdsOffset  = 0;
 float turbScale  = 1.0;
 float turbOffset = 0;
 
+// ============== Temporary Sensor Failure Bypass ==============
+// Set to true if turbidity sensor is waterlogged, shorted, or broken (reads ~400 NTU).
+// Forces turbidity to 0.0 NTU so water stays safe, valve stays open, and buzzer does not alarm.
+const bool BYPASS_BROKEN_TURBIDITY = true;
+
 // ============== Moving Average Filter ==============
 const int PH_WINDOW = 10;
 float phBuf[PH_WINDOW];
@@ -222,6 +227,11 @@ void loop()
     const float MUDDY_VOLTAGE = 2.65;
     float ntu = (CLEAR_VOLTAGE - turbV) * (400.0 / (CLEAR_VOLTAGE - MUDDY_VOLTAGE));
     ntu = constrain(ntu, 0.0, 400.0);
+
+    // Bypass waterlogged/damaged sensor: force 0.0 NTU clean baseline
+    if (BYPASS_BROKEN_TURBIDITY || ntu >= 390.0) {
+        ntu = 0.0;
+    }
 
     // 2. Fetch Control Parameters & Dynamic Sync Rate from Firebase (/controls)
     int manualOverride = 0;
