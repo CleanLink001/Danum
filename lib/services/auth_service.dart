@@ -39,7 +39,7 @@ class AuthService with ChangeNotifier {
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-    _isLoggedIn = prefs.getBool(_sessionKey) ?? false;
+    final bool sessionLoggedIn = prefs.getBool(_sessionKey) ?? false;
     final userJson = prefs.getString(_currentUserKey);
     if (userJson != null) {
       try {
@@ -49,13 +49,24 @@ class AuthService with ChangeNotifier {
       }
     }
 
-    // Check if Firebase Auth already has a signed-in user
+    // Only restore user session if BOTH SharedPreferences session is active AND Firebase Auth has a non-anonymous user
     final fbUser = FirebaseAuth.instance.currentUser;
-    if (fbUser != null) {
-      if (!fbUser.isAnonymous) {
-        _isLoggedIn = true;
-        await _syncUserProfileFromFirebase(fbUser.uid, fbUser);
+    if (fbUser != null && !fbUser.isAnonymous && sessionLoggedIn) {
+      _isLoggedIn = true;
+      await _syncUserProfileFromFirebase(fbUser.uid, fbUser);
+    } else if (fbUser != null && !fbUser.isAnonymous && !sessionLoggedIn) {
+      // Firebase has a lingering non-anonymous user from a previous session, but local session is logged out.
+      // Sign out and re-authenticate anonymously so RTDB rules continue to pass while logged out.
+      try {
+        await FirebaseAuth.instance.signOut();
+        await FirebaseAuth.instance.signInAnonymously();
+      } catch (e) {
+        debugPrint('Error clearing lingering user on init: $e');
       }
+      _isLoggedIn = false;
+      _currentUser = null;
+    } else {
+      _isLoggedIn = false;
     }
 
     _controller.add(_isLoggedIn);
@@ -141,6 +152,7 @@ class AuthService with ChangeNotifier {
 
   Future<String?> login(String email, String password) async {
     final cleanEmail = email.trim().toLowerCase();
+    final cleanPassword = password.trim();
 
     // Enforce internal-only policy: Only User and Tester accounts allowed
     if (!await isAuthorizedAccount(cleanEmail)) {
@@ -152,21 +164,35 @@ class AuthService with ChangeNotifier {
       try {
         credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: cleanEmail,
-          password: password.trim(),
+          password: cleanPassword,
         );
       } on FirebaseAuthException catch (authErr) {
-        // If this authorized account hasn't been created in Firebase yet, auto-create it seamlessly
+        // Under Firebase Email Enumeration Protection, both "wrong password" and "user not found"
+        // throw code 'invalid-credential'.
+        // If the account has not been created yet in Firebase Auth, attempt to create it seamlessly.
         if (authErr.code == 'user-not-found' || authErr.code == 'invalid-credential') {
           try {
             credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
               email: cleanEmail,
-              password: password.trim(),
+              password: cleanPassword,
             );
             final defaultName = cleanEmail.contains('test') ? 'Tester Account' : 'User Account';
             await credential.user?.updateDisplayName(defaultName);
+          } on FirebaseAuthException catch (createErr) {
+            // If creation fails with email-already-in-use, the account already exists!
+            // This confirms the initial signIn failed because the password was incorrect.
+            if (createErr.code == 'email-already-in-use') {
+              return 'Incorrect password. Please verify your credentials.';
+            }
+            if (createErr.code == 'weak-password') {
+              return 'Password must be at least 6 characters.';
+            }
+            return createErr.message ?? 'Authentication error: ${createErr.code}';
           } catch (_) {
-            rethrow; // If creation fails (e.g. wrong password on existing account), show auth error
+            return 'Incorrect password. Please verify your credentials.';
           }
+        } else if (authErr.code == 'wrong-password') {
+          return 'Incorrect password. Please verify your credentials.';
         } else {
           rethrow;
         }
@@ -180,7 +206,7 @@ class AuthService with ChangeNotifier {
       return 'Login failed. Please check credentials.';
     } on FirebaseAuthException catch (e) {
       debugPrint('Firebase login exception: ${e.code} - ${e.message}');
-      if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+      if (e.code == 'wrong-password' || e.code == 'invalid-credential' || e.code == 'email-already-in-use') {
         return 'Incorrect password. Please verify your credentials.';
       } else if (e.code == 'weak-password') {
         return 'Password must be at least 6 characters.';
@@ -442,19 +468,46 @@ class AuthService with ChangeNotifier {
   }
 
   Future<void> logout() async {
-    try {
-      await FirebaseAuth.instance.signOut();
-    } catch (e) {
-      debugPrint('Firebase sign out error: $e');
-    }
-
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_sessionKey, false);
     await prefs.remove(_currentUserKey);
     _isLoggedIn = false;
     _currentUser = null;
+
+    try {
+      await FirebaseAuth.instance.signOut();
+      // Ensure app instance continues to have anonymous auth for RTDB telemetry reads
+      await FirebaseAuth.instance.signInAnonymously();
+    } catch (e) {
+      debugPrint('Firebase sign out error: $e');
+    }
+
     _controller.add(false);
     notifyListeners();
+  }
+
+  Future<String?> sendPasswordReset(String email) async {
+    final cleanEmail = email.trim().toLowerCase();
+    if (cleanEmail.isEmpty) {
+      return 'Please enter your email address.';
+    }
+    if (!await isAuthorizedAccount(cleanEmail)) {
+      return 'Access Denied: This application is for internal use only. Only authorized User and Tester accounts can sign in.';
+    }
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: cleanEmail);
+      return null;
+    } on FirebaseAuthException catch (e) {
+      debugPrint('Firebase password reset exception: ${e.code} - ${e.message}');
+      if (e.code == 'user-not-found') {
+        return 'No user found with this email.';
+      } else if (e.code == 'invalid-email') {
+        return 'The email address is badly formatted.';
+      }
+      return e.message ?? 'Failed to send password reset email: ${e.code}';
+    } catch (e) {
+      return 'Connection error: $e';
+    }
   }
 
   // Compatibility stubs for legacy screens

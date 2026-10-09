@@ -126,7 +126,56 @@ class _LoginScreenState extends State<LoginScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(color: subColor, fontSize: 13),
                   ),
-                  const SizedBox(height: 35),
+                  // Quick Account Fill chips for authorized internal accounts
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6, bottom: 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ActionChip(
+                          avatar: const Icon(Icons.person_rounded, size: 16, color: Color(0xFF38BDF8)),
+                          label: Text(
+                            settings.translate('quick_user'),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: textColor,
+                            ),
+                          ),
+                          backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                          side: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          onPressed: () {
+                            setState(() {
+                              _emailController.text = 'user@example.com';
+                              _passwordController.text = 'Password123!';
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 10),
+                        ActionChip(
+                          avatar: const Icon(Icons.science_rounded, size: 16, color: Color(0xFF818CF8)),
+                          label: Text(
+                            settings.translate('quick_tester'),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: textColor,
+                            ),
+                          ),
+                          backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                          side: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          onPressed: () {
+                            setState(() {
+                              _emailController.text = 'test@example.com';
+                              _passwordController.text = 'Password123!';
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
 
                   _buildInputField(
                     label: settings.translate('account_email'),
@@ -150,7 +199,22 @@ class _LoginScreenState extends State<LoginScreen> {
                     textColor: textColor,
                     subColor: subColor,
                   ),
-                  const SizedBox(height: 25),
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => _handleForgotPassword(settings),
+                      child: Text(
+                        settings.translate('forgot_password'),
+                        style: const TextStyle(
+                          color: Color(0xFF38BDF8),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
                   _buildLoginButton(settings),
                   const SizedBox(height: 25),
                   Text(
@@ -310,6 +374,33 @@ class _LoginScreenState extends State<LoginScreen> {
           localizedError = settings.translate('err_too_many_requests');
         } else if (error.contains('Login failed')) {
           localizedError = settings.translate('err_login_failed');
+        }
+        _showToast(localizedError, isError: true);
+      }
+    }
+  }
+
+  void _handleForgotPassword(SettingsService settings) async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      _showToast(settings.translate('err_fill_email_password'), isError: true);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    final auth = Provider.of<AuthService>(context, listen: false);
+    final error = await auth.sendPasswordReset(email);
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+      if (error == null) {
+        _showToast(settings.translate('reset_link_sent'), isError: false);
+      } else {
+        String localizedError = error;
+        if (error.contains('Access Denied')) {
+          localizedError = settings.translate('err_access_denied');
+        } else if (error.contains('badly formatted')) {
+          localizedError = settings.translate('err_invalid_email');
         }
         _showToast(localizedError, isError: true);
       }
